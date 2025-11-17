@@ -1,0 +1,90 @@
+version: '3.8'
+
+networks:
+  gsc_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+services:
+  warehouse:
+    image: postgres:13
+    container_name: gsc_warehouse
+    environment:
+      POSTGRES_DB: gsc_db
+      POSTGRES_USER: gsc_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gsc_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - gsc_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gsc_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  insights_engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.insights
+    container_name: gsc_insights_engine
+    environment:
+      WAREHOUSE_DSN: postgresql://gsc_user:${DB_PASSWORD:-gsc_pass}@warehouse:5432/gsc_db
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./insights_core:/app/insights_core:ro
+      - ./logs:/app/logs
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    restart: unless-stopped
+    command: python -m insights_core.cli scheduler
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: gsc_mcp
+    ports:
+      - "8000:8000"
+    environment:
+      WAREHOUSE_DSN: postgresql://gsc_user:${DB_PASSWORD:-gsc_pass}@warehouse:5432/gsc_db
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./mcp:/app/mcp:ro
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gsc_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana:/etc/grafana/provisioning:ro
+    networks:
+      - gsc_network
+    depends_on:
+      - warehouse
+    restart: unless-stopped
