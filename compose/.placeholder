@@ -1,0 +1,8 @@
+# Docker Compose files will be added in subsequent phases
+# Phase 1: warehouse.yml
+# Phase 2: bq_extractor.yml  
+# Phase 3: api_ingestor.yml
+# Phase 5: mcp.yml
+# Phase 6: insights_api.yml (optional)
+# Phase 7: docker-compose.yml (unified)
+# Phase 8: scheduler.yml

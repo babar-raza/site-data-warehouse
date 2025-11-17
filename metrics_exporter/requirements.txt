@@ -1,0 +1,4 @@
+# Metrics Exporter Requirements
+prometheus-client>=0.19.0
+psycopg2-binary>=2.9.6
+PyYAML>=6.0.1

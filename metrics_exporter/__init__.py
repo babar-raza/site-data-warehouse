@@ -1,0 +1,4 @@
+"""
+GSC Warehouse Metrics Exporter
+"""
+__version__ = "1.0.0"

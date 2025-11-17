@@ -1,0 +1,41 @@
+# GSC Warehouse Metrics Exporter Configuration
+
+exporter:
+  port: 9090
+  scrape_interval: 15  # seconds
+  log_level: INFO
+
+database:
+  host: warehouse
+  port: 5432
+  database: gsc_db
+  user: gsc_user
+  # password via environment variable WAREHOUSE_PASSWORD
+
+scheduler:
+  metrics_file: /logs/scheduler_metrics.json
+
+metrics:
+  # Fact table metrics
+  fact_table:
+    enabled: true
+    check_duplicates: true
+    check_nulls: true
+  
+  # Data freshness
+  freshness:
+    enabled: true
+    warn_threshold_days: 2
+    critical_threshold_days: 7
+  
+  # Insights metrics
+  insights:
+    enabled: true
+  
+  # Watermark metrics
+  watermarks:
+    enabled: true
+  
+  # Scheduler integration
+  scheduler:
+    enabled: true

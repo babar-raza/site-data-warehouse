@@ -1,0 +1,54 @@
+# Watcher Agent Configuration
+
+# Database connection
+database:
+  host: localhost
+  port: 5432
+  user: gsc_user
+  password: changeme
+  database: gsc_warehouse
+
+# Anomaly detection settings
+sensitivity: 2.5  # Z-score threshold for statistical anomalies
+min_data_points: 7  # Minimum historical data points required
+
+# Trend analysis settings
+min_confidence: 0.7  # Minimum R-squared for trend detection
+min_duration: 7  # Minimum days for trend identification
+
+# Detection thresholds
+thresholds:
+  traffic_drop_percent: 30.0  # % drop to trigger traffic anomaly
+  position_drop_positions: 5.0  # Position drop to trigger alert
+  engagement_change_percent: 25.0  # % change in engagement rate
+  conversion_drop_percent: 20.0  # % drop in conversion rate
+  ctr_anomaly_zscore: 2.5  # Z-score for CTR anomalies
+
+# Monitoring settings
+monitoring:
+  default_lookback_days: 7
+  historical_baseline_days: 30
+  max_pages_per_run: 1000
+  batch_size: 100
+
+# Alert settings
+alerts:
+  enabled: true
+  store_in_database: true
+  send_notifications: false  # Placeholder for future notification system
+
+# Agent identification
+agent_id: watcher_001
+agent_type: watcher
+version: 1.0.0
+
+# Capabilities
+capabilities:
+  - anomaly_detection
+  - trend_analysis
+  - alert_generation
+  - traffic_monitoring
+  - position_tracking
+  - ctr_analysis
+  - engagement_tracking
+  - conversion_monitoring

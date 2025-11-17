@@ -1,0 +1,45 @@
+# Diagnostician Agent Configuration
+
+# Database connection
+database:
+  host: localhost
+  port: 5432
+  user: gsc_user
+  password: changeme
+  database: gsc_warehouse
+
+# Root cause analysis settings
+min_confidence: 0.6  # Minimum confidence threshold for diagnoses
+require_evidence: true  # Require supporting evidence for diagnoses
+
+# Correlation analysis settings
+min_correlation: 0.5  # Minimum correlation coefficient
+max_lag_days: 7  # Maximum lag for leading indicators
+
+# Issue classification settings
+impact_weight: 0.6  # Weight for impact in priority calculation
+urgency_weight: 0.4  # Weight for urgency in priority calculation
+
+# Analysis capabilities
+capabilities:
+  traffic_drop_analysis: true
+  engagement_analysis: true
+  conversion_analysis: true
+  technical_analysis: true
+  cannibalization_detection: true
+  competitor_analysis: true
+  correlation_analysis: true
+
+# Agent identification
+agent_id: diagnostician_001
+agent_type: diagnostician
+version: 1.0.0
+
+# Processing settings
+batch_size: 50  # Number of findings to process in batch
+analysis_timeout_seconds: 30  # Timeout for single analysis
+
+# Storage settings
+store_diagnoses: true
+store_correlations: true
+max_related_pages: 10

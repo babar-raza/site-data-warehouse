@@ -1,0 +1,48 @@
+# Strategist Agent Configuration
+
+# Database connection
+database:
+  host: localhost
+  port: 5432
+  user: gsc_user
+  password: changeme
+  database: gsc_warehouse
+
+# Prioritization weights
+impact_weight: 0.4  # Weight for impact in prioritization
+urgency_weight: 0.3  # Weight for urgency in prioritization
+effort_weight: 0.2  # Weight for effort (inverse) in prioritization
+roi_weight: 0.1  # Weight for ROI in prioritization
+
+# Impact estimation settings
+traffic_lift_confidence: 0.8  # Confidence threshold for traffic lift estimates
+effort_multipliers:
+  content_optimization: 1.0
+  internal_linking: 0.8
+  technical_fixes: 1.5
+  content_creation: 2.0
+  content_pruning: 0.5
+  ux_improvements: 1.2
+
+# Recommendation generation settings
+min_confidence: 0.5  # Minimum confidence for generating recommendations
+max_recommendations_per_diagnosis: 5  # Maximum recommendations per diagnosis
+generate_alternatives: true  # Generate alternative recommendations
+
+# Agent identification
+agent_id: strategist_001
+agent_type: strategist
+version: 1.0.0
+
+# Processing settings
+batch_size: 50  # Number of diagnoses to process in batch
+recommendation_timeout_seconds: 30  # Timeout for single recommendation generation
+
+# Action plan settings
+default_top_n: 10  # Default number of recommendations in action plan
+max_priority_level: 3  # Maximum priority level to include in action plan
+
+# Storage settings
+store_recommendations: true
+track_implementation: true
+calculate_roi: true

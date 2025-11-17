@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # GSC Warehouse metrics
+  - job_name: 'gsc_warehouse_metrics'
+    static_configs:
+      - targets: ['metrics_exporter:9090']
+        labels:
+          service: 'gsc_warehouse'
+          environment: 'local'
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9091']

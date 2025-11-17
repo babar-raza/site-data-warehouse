@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  insights_engine:
+    build:
+      context: ..
+      dockerfile: compose/dockerfiles/Dockerfile.insights_engine
+    image: gsc_warehouse_insights_engine:latest
+    container_name: gsc_insights_engine
+    environment:
+      INSIGHTS_WAREHOUSE_DSN: postgresql://gsc_user:${DB_PASSWORD:-gsc_pass}@warehouse:5432/gsc_db
+      INSIGHTS_RISK_THRESHOLD_CLICKS_PCT: -20.0
+      INSIGHTS_OPPORTUNITY_THRESHOLD_IMPRESSIONS_PCT: 50.0
+      INSIGHTS_MIN_CONFIDENCE_FOR_ACTION: 0.7
+    networks:
+      - gsc_network
+    depends_on:
+      - warehouse
+    restart: "no"  # One-shot service (run by scheduler)
+    volumes:
+      - ./insights_core:/app/insights_core:ro
+      - ../logs:/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  gsc_network:
+    external: true

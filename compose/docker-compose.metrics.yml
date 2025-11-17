@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  metrics_exporter:
+    build:
+      context: .
+      dockerfile: metrics_exporter/Dockerfile
+    image: gsc_warehouse_metrics_exporter:latest
+    container_name: gsc_metrics_exporter
+    environment:
+      WAREHOUSE_DSN: postgresql://gsc_user:${DB_PASSWORD:-gsc_pass}@warehouse:5432/gsc_db
+      SCHEDULER_METRICS_FILE: /logs/scheduler_metrics.json
+      EXPORTER_PORT: 9090
+      SCRAPE_INTERVAL: 15
+      CONFIG_FILE: /app/metrics_exporter/config.yaml
+    ports:
+      - "9090:9090"
+    networks:
+      - gsc_network
+    depends_on:
+      - warehouse
+    volumes:
+      - ./logs:/logs:ro
+      - ./metrics_exporter:/app/metrics_exporter:ro
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  prometheus:
+    build:
+      context: .
+      dockerfile: prometheus/Dockerfile
+    image: gsc_warehouse_prometheus:latest
+    container_name: gsc_prometheus
+    ports:
+      - "9091:9091"
+    networks:
+      - gsc_network
+    depends_on:
+      - metrics_exporter
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:9091'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  gsc_network:
+    external: true
+
+volumes:
+  prometheus_data:
+    driver: local

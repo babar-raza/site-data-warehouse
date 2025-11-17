@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  api_ingestor:
+    build:
+      context: ../
+      dockerfile: ./compose/dockerfiles/api_ingestor.Dockerfile
+    container_name: gsc_api_ingestor
+    environment:
+      - DB_HOST=warehouse
+      - DB_PORT=5432
+      - DB_NAME=gsc_db
+      - DB_USER=gsc_user
+      - DB_PASSWORD=gsc_pass
+      - GSC_SVC_JSON=/run/secrets/gsc_sa.json
+      - API_COOLDOWN_SEC=${API_COOLDOWN_SEC:-2}
+      - GSC_API_ROWS_PER_PAGE=${GSC_API_ROWS_PER_PAGE:-25000}
+      - GSC_API_MAX_RETRIES=${GSC_API_MAX_RETRIES:-3}
+      - INGEST_DAYS=${INGEST_DAYS:-30}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../ingestors/api:/app
+      - ../report:/report
+      - ../logs:/logs
+    secrets:
+      - gsc_sa
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    networks:
+      - gsc_network
+    restart: no
+    command: python /app/gsc_api_ingestor.py
+
+secrets:
+  gsc_sa:
+    file: ../secrets/gsc_sa.json
+
+networks:
+  gsc_network:
+    external: true
+    name: compose_gsc_network

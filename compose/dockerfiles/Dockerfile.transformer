@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install PostgreSQL client for psql if needed
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-client && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy transform scripts
+COPY transform/ /app/
+COPY sql/ /sql/
+
+# Set entrypoint
+CMD ["python", "apply_transforms.py"]

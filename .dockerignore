@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+
+# Virtual environments
+venv
+env
+.venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/*
+
+# Secrets (should use Docker secrets instead)
+secrets/*.json
+secrets/*.txt
+.env
+
+# Reports (build-time not needed)
+report/
+
+# Documentation
+*.md
+README*
+
+# Test files
+test_*.py
+
+# Batch scripts
+*.bat
+*.ps1

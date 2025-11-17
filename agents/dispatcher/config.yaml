@@ -1,0 +1,68 @@
+dispatcher:
+  version: "1.0.0"
+  
+  execution:
+    max_concurrent: 3
+    timeout_seconds: 300
+    retry_attempts: 3
+    retry_delay_seconds: 5
+    
+  validation:
+    enabled: true
+    auto_rollback_on_failure: true
+    validation_timeout_seconds: 60
+    
+  monitoring:
+    outcome_monitoring_days: 30
+    metrics_collection_interval_hours: 24
+    performance_threshold:
+      min_traffic_lift_pct: 5.0
+      min_ctr_improvement_pct: 2.0
+      
+  integrations:
+    content_api:
+      enabled: true
+      base_url: "https://api.example.com"
+      timeout_seconds: 30
+      
+    github:
+      enabled: true
+      base_url: "https://api.github.com"
+      default_branch: "main"
+      pr_labels: ["seo-optimization", "automated"]
+      
+    gitlab:
+      enabled: false
+      base_url: "https://gitlab.com/api/v4"
+      default_branch: "main"
+      
+    wordpress:
+      enabled: false
+      base_url: "https://example.com/wp-json"
+      
+    notifications:
+      email:
+        enabled: true
+        smtp_host: "smtp.gmail.com"
+        smtp_port: 587
+        from_address: "seo-agent@example.com"
+        
+      slack:
+        enabled: true
+        webhook_url: ""
+        channel: "#seo-alerts"
+        
+      teams:
+        enabled: false
+        webhook_url: ""
+        
+  rollback:
+    enabled: true
+    backup_before_execution: true
+    auto_rollback_threshold_minutes: 60
+    max_rollback_attempts: 2
+    
+  logging:
+    level: "INFO"
+    format: "json"
+    include_execution_details: true

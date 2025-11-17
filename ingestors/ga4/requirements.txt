@@ -1,0 +1,16 @@
+# GA4 Extractor Requirements
+
+# Google Analytics Data API
+google-analytics-data>=0.18.0
+google-auth>=2.16.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+
+# Database
+psycopg2-binary>=2.9.6
+
+# Configuration
+PyYAML>=6.0.1
+
+# Utilities
+python-dateutil>=2.8.2

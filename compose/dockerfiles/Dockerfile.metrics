@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir \
+    flask==3.0.0 \
+    psycopg2-binary==2.9.9 \
+    gunicorn==21.2.0
+
+# Copy metrics exporter
+COPY scheduler/metrics_exporter.py /app/
+
+# Create logs directory
+RUN mkdir -p /logs
+
+# Expose metrics port
+EXPOSE 8002
+
+# Run with gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:8002", "--workers", "2", "--timeout", "120", "metrics_exporter:app"]

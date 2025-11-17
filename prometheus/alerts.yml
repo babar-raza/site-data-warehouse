@@ -1,0 +1,74 @@
+# Prometheus Alerting Rules for GSC Warehouse
+
+groups:
+  - name: gsc_warehouse_alerts
+    interval: 30s
+    rules:
+      # Warehouse health
+      - alert: WarehouseDown
+        expr: gsc_warehouse_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GSC Warehouse database is down"
+          description: "The warehouse database has been unavailable for more than 2 minutes."
+      
+      # Data freshness
+      - alert: DataStaleness
+        expr: gsc_data_freshness_days > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data is stale for {{ $labels.property }}"
+          description: "Property {{ $labels.property }} has not received data updates for {{ $value }} days."
+      
+      - alert: DataStalenessCritical
+        expr: gsc_data_freshness_days > 7
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Data is critically stale for {{ $labels.property }}"
+          description: "Property {{ $labels.property }} has not received data updates for {{ $value }} days."
+      
+      # Task failures
+      - alert: TaskFailure
+        expr: gsc_task_success{task_name!=""} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Task {{ $labels.task_name }} failed"
+          description: "Task {{ $labels.task_name }} has been failing for more than 5 minutes."
+      
+      # Duplicate records
+      - alert: DuplicateRecordsDetected
+        expr: gsc_duplicate_records > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Duplicate records detected in fact table"
+          description: "{{ $value }} duplicate records detected in the fact table."
+      
+      # Null values
+      - alert: NullValuesInCriticalFields
+        expr: gsc_null_values_count > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Null values detected in {{ $labels.field }}"
+          description: "{{ $value }} null values found in critical field {{ $labels.field }}."
+      
+      # Watermark lag
+      - alert: WatermarkLag
+        expr: gsc_watermark_days_behind > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Watermark lagging for {{ $labels.property }}"
+          description: "Watermark for {{ $labels.property }} ({{ $labels.source_type }}) is {{ $value }} days behind."

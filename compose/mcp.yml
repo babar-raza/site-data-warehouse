@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mcp:
+    build:
+      context: ../
+      dockerfile: compose/dockerfiles/Dockerfile.mcp
+    image: gsc-mcp-server:latest
+    container_name: gsc_mcp_server
+    ports:
+      - "8000:8000"
+    environment:
+      WAREHOUSE_DSN: postgresql://gsc_user:gsc_pass@warehouse:5432/gsc_db
+      PYTHONUNBUFFERED: 1
+      MCP_VERSION: "2025-01-18"
+    volumes:
+      - ../mcp:/app
+      - ../report:/report
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    command: python /app/mcp_server.py
+
+networks:
+  gsc_network:
+    external: true
+    name: compose_gsc_network

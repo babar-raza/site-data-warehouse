@@ -1,0 +1,135 @@
+GSC Data Warehouse - Clean Project Structure
+=============================================
+
+gsc-warehouse/
+│
+├── README.md                           # Project overview and quick start
+├── PROJECT_SUMMARY.md                  # Detailed reorganization summary
+├── PROJECT_STRUCTURE.txt              # Project structure reference
+├── .env.example                       # Configuration template
+│
+├── docker-compose.yml                 # Unified service orchestration
+├── deploy.sh                          # Linux/Mac deployment script
+├── deploy.bat                         # Windows deployment script
+├── redeploy.sh                        # Redeployment script
+│
+├── deployment/                        # Deployment artifacts (ORGANIZED)
+│   ├── dockerfiles/                   # All Dockerfiles (5 files)
+│   │   ├── Dockerfile.insights_api
+│   │   ├── Dockerfile.mcp
+│   │   ├── Dockerfile.metrics
+│   │   ├── Dockerfile.scheduler
+│   │   └── Dockerfile.transformer
+│   │
+│   ├── init-db/                       # Database initialization
+│   │   ├── 00_init.sh
+│   │   └── 01_schema.sql
+│   │
+│   ├── prometheus/                    # Metrics configuration
+│   │   └── prometheus.yml
+│   │
+│   ├── scripts/                       # Helper scripts
+│   │   ├── health-check.sh / .bat
+│   │   ├── start-collection.sh / .bat
+│   │   ├── stop.sh / .bat
+│   │   └── validate-setup.sh / .bat
+│   │
+│   └── docs/                          # Technical documentation
+│       ├── API_REFERENCE.md
+│       ├── ARCHITECTURE.md
+│       ├── DEPLOYMENT.md
+│       ├── DEVELOPMENT.md
+│       ├── IMPROVEMENTS.md
+│       ├── RATE_LIMITING.md
+│       └── WINDOWS_QUICKSTART.md
+│
+├── cookbooks/                         # Operational guides
+│   ├── deployment-cookbook.md
+│   ├── gsc-data-collection-cookbook.md
+│   └── operations-cookbook.md
+│
+├── ingestors/                         # Data ingestion
+│   └── api/
+│       ├── __init__.py
+│       ├── api_ingestor.py
+│       ├── gsc_api_ingestor.py
+│       └── rate_limiter.py
+│
+├── scheduler/                         # Scheduling and orchestration
+│   ├── scheduler.py
+│   ├── startup_orchestrator.py
+│   └── metrics_exporter.py
+│
+├── transform/                         # SQL transformations
+│   └── apply_transforms.py
+│
+├── insights_api/                      # REST API service
+│   └── insights_api.py
+│
+├── mcp/                              # MCP server
+│   └── mcp_server.py
+│
+├── sql/                              # SQL scripts
+│   ├── 01_schema.sql
+│   ├── 02_upsert_template.sql
+│   └── 03_transforms.sql
+│
+├── secrets/                          # Credentials (user provided)
+│   ├── README.md
+│   ├── gsc_sa.json.template
+│   ├── gsc_sa.json                   # You create this
+│   └── db_password.txt
+│
+├── tests/                            # Test suite
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_api_ingestor.py
+│   ├── test_bootstrap.py
+│   ├── test_insights_api.py
+│   ├── test_mcp_server.py
+│   ├── test_ollama.py
+│   └── test_rate_limiter.py
+│
+├── logs/                             # Runtime logs (created)
+└── report/                           # Status reports (created)
+
+Key Principles:
+===============
+
+1. NO DUPLICATES - Each file exists in only one location
+2. Clear separation - Deployment vs source code vs docs
+3. Logical grouping - Related files together
+4. Single source of truth - One compose file, one set of scripts
+
+File Count:
+===========
+- Python files: 16
+- Shell scripts: 10 (5 pairs for Linux+Windows)
+- Docker files: 5
+- SQL files: 3
+- Documentation: 10 markdown files
+- Configuration: 2 (docker-compose.yml, .env.example)
+
+Total: ~46 files (excluding __pycache__ and runtime files)
+
+Quick Start:
+============
+
+1. Setup credentials:
+   cp secrets/gsc_sa.json.template secrets/gsc_sa.json
+   # Edit with your Google Cloud service account
+
+2. Deploy:
+   ./deploy.sh              # Linux/Mac
+   deploy.bat               # Windows
+
+3. Verify:
+   docker compose ps
+   docker compose exec warehouse psql -U gsc_user -d gsc_db \
+     -c "SELECT COUNT(*) FROM gsc.fact_gsc_daily;"
+
+For detailed instructions, see:
+- README.md - Overview
+- cookbooks/deployment-cookbook.md - Deployment
+- cookbooks/gsc-data-collection-cookbook.md - Data collection
+- cookbooks/operations-cookbook.md - Operations

@@ -1,0 +1,401 @@
+version: '3.8'
+
+# ============================================
+# GSC Warehouse - Unified Docker Compose
+# ============================================
+# Production-ready orchestration for all services
+# 
+# Quick Start:
+#   1. cp .env.example .env
+#   2. Edit .env with your credentials
+#   3. docker-compose up -d
+#
+# Profiles:
+#   - core: Minimum viable (warehouse + ingestors)
+#   - insights: Insight generation (engine + scheduler)
+#   - api: Serving layer (API + MCP)
+#   - observability: Monitoring (Prometheus + Grafana)
+#
+# Usage:
+#   docker-compose --profile core --profile insights up -d
+
+services:
+  # ==========================================
+  # DATABASE (PostgreSQL)
+  # ==========================================
+  warehouse:
+    image: postgres:14-alpine
+    container_name: gsc_warehouse
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gsc_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gsc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gsc_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./compose/init-db:/docker-entrypoint-initdb.d:ro
+      - ./logs:/logs
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - gsc_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gsc_user} -d ${POSTGRES_DB:-gsc_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # STARTUP ORCHESTRATOR
+  # ==========================================
+  startup_orchestrator:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+    container_name: gsc_startup
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      BACKFILL_DAYS: ${BACKFILL_DAYS:-60}
+    volumes:
+      - ./logs:/logs
+      - ./secrets:/secrets:ro
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    command: python startup_orchestrator.py
+    profiles:
+      - core
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ==========================================
+  # INGESTORS
+  # ==========================================
+  api_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.api_ingestor
+    container_name: gsc_api_ingestor
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      GSC_SERVICE_ACCOUNT_FILE: /secrets/gsc_sa.json
+      PROPERTIES: ${GSC_PROPERTIES}
+    volumes:
+      - ./logs:/logs
+      - ./secrets:/secrets:ro
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    profiles:
+      - core
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
+  ga4_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.ga4_ingestor
+    container_name: gsc_ga4_ingestor
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      GA4_CREDENTIALS_FILE: /secrets/ga4_sa.json
+      GA4_PROPERTY_ID: ${GA4_PROPERTY_ID}
+    volumes:
+      - ./logs:/logs
+      - ./secrets:/secrets:ro
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    profiles:
+      - core
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
+  # ==========================================
+  # TRANSFORM SERVICE
+  # ==========================================
+  transform:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.transformer
+    container_name: gsc_transform
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+    volumes:
+      - ./logs:/logs
+      - ./transform/sql:/app/sql:ro
+    networks:
+      - gsc_network
+    depends_on:
+      startup_orchestrator:
+        condition: service_completed_successfully
+    command: python apply_transforms.py
+    profiles:
+      - core
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # INSIGHTS ENGINE
+  # ==========================================
+  insights_engine:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_engine
+    container_name: gsc_insights_engine
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      RISK_THRESHOLD_CLICKS_PCT: ${RISK_THRESHOLD_CLICKS_PCT:--20}
+      RISK_THRESHOLD_CONVERSIONS_PCT: ${RISK_THRESHOLD_CONVERSIONS_PCT:--20}
+      OPPORTUNITY_THRESHOLD_IMPRESSIONS_PCT: ${OPPORTUNITY_THRESHOLD_IMPRESSIONS_PCT:-50}
+    volumes:
+      - ./logs:/logs
+    networks:
+      - gsc_network
+    depends_on:
+      transform:
+        condition: service_completed_successfully
+    command: python -m insights_core.cli refresh-insights
+    profiles:
+      - insights
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ==========================================
+  # SCHEDULER
+  # ==========================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+    container_name: gsc_scheduler
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      GSC_SERVICE_ACCOUNT_FILE: /secrets/gsc_sa.json
+      GA4_CREDENTIALS_FILE: /secrets/ga4_sa.json
+      PROPERTIES: ${GSC_PROPERTIES}
+    volumes:
+      - ./logs:/logs
+      - ./secrets:/secrets:ro
+    networks:
+      - gsc_network
+    depends_on:
+      insights_engine:
+        condition: service_started
+    profiles:
+      - insights
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ==========================================
+  # INSIGHTS API
+  # ==========================================
+  insights_api:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_api
+    container_name: gsc_insights_api
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      API_PORT: ${API_PORT:-8000}
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "${API_PORT:-8000}:8000"
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
+  # ==========================================
+  # MCP SERVER
+  # ==========================================
+  mcp:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.mcp
+    container_name: gsc_mcp
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      MCP_PORT: ${MCP_PORT:-8001}
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "${MCP_PORT:-8001}:8001"
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    profiles:
+      - api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # OBSERVABILITY - PROMETHEUS
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gsc_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    profiles:
+      - observability
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # OBSERVABILITY - GRAFANA
+  # ==========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gsc_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: ${GRAFANA_PLUGINS:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - gsc_network
+    depends_on:
+      - prometheus
+    profiles:
+      - observability
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # METRICS EXPORTER
+  # ==========================================
+  metrics_exporter:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.metrics
+    container_name: gsc_metrics_exporter
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      METRICS_PORT: ${METRICS_PORT:-8002}
+    volumes:
+      - ./logs:/logs:ro
+    ports:
+      - "${METRICS_PORT:-8002}:8002"
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    profiles:
+      - observability
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+# ==========================================
+# NETWORKS
+# ==========================================
+networks:
+  gsc_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+# ==========================================
+# VOLUMES
+# ==========================================
+volumes:
+  pgdata:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

@@ -1,0 +1,43 @@
+# Prometheus Configuration for GSC Warehouse
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'gsc-warehouse'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files
+rule_files:
+  # - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # GSC Warehouse Metrics Exporter
+  - job_name: 'gsc_warehouse'
+    static_configs:
+      - targets: ['metrics_exporter:8002']
+        labels:
+          service: 'gsc_warehouse'
+    
+    # Scrape interval override
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    
+    # Metric relabeling (optional)
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'gsc_.*'
+        action: keep
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
