@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 
 # Transform files in application order
 TRANSFORM_FILES = [
-    'sql/01_base_views.sql',
-    'sql/02_page_health.sql',
-    'sql/03_query_trends.sql',
-    'sql/04_directory_analysis.sql',
-    'sql/05_brand_nonbrand.sql',
-    'sql/06_cannibalization.sql',
-    'sql/10_unified_performance_view.sql',
+    'sql/03_transforms.sql',  # Base transforms and views
+    'sql/04_ga4_schema.sql',  # GA4 tables
+    'sql/05_unified_view.sql',  # Unified page performance view
+    'sql/06_materialized_views.sql',  # Materialized views for performance
+    'sql/07_agent_findings.sql',  # Agent findings table
+    'sql/08_agent_diagnoses.sql',  # Agent diagnoses table
+    'sql/09_agent_recommendations.sql',  # Agent recommendations table
+    'sql/10_agent_executions.sql',  # Agent execution tracking
+    'sql/11_insights_table.sql',  # Insights table for Unified Insight Engine
 ]
 
 def get_db_connection():

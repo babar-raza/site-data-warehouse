@@ -257,6 +257,36 @@ class InsightRepository:
         finally:
             conn.close()
     
+    def query_recent(
+        self,
+        hours: int = 24,
+        property: Optional[str] = None
+    ) -> List[Insight]:
+        """Get insights generated in the last N hours"""
+        conn = self._get_connection()
+        try:
+            where_clauses = [
+                "generated_at >= %s"
+            ]
+            values = [datetime.utcnow() - timedelta(hours=hours)]
+            
+            if property:
+                where_clauses.append("property = %s")
+                values.append(property)
+            
+            where_sql = " AND ".join(where_clauses)
+            
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(f"""
+                    SELECT * FROM gsc.insights
+                    WHERE {where_sql}
+                    ORDER BY generated_at DESC
+                """, values)
+                rows = cur.fetchall()
+                return [self._row_to_insight(dict(row)) for row in rows]
+        finally:
+            conn.close()
+    
     def delete_old_insights(self, days: int = 90) -> int:
         """Delete insights older than specified days"""
         conn = self._get_connection()
