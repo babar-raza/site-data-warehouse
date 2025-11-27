@@ -18,21 +18,23 @@ logger = logging.getLogger(__name__)
 class OpportunityDetector(BaseDetector):
     """
     Finds optimization opportunities
-    
+
     Strategies:
     1. Striking Distance: Pages ranking 11-20 with high impressions
     2. Content Gap: High impressions, low engagement
-    3. Cannibalization: Multiple pages for same query (future)
+    3. URL Consolidation: Multiple URL variations for same content
+    4. Cannibalization: Multiple pages for same query (future)
     """
-    
+
     def detect(self, property: str = None) -> int:
         """Find opportunities"""
         logger.info("Starting opportunity detection...")
-        
+
         insights_created = 0
         insights_created += self._find_striking_distance(property)
         insights_created += self._find_content_gaps(property)
-        
+        insights_created += self._find_url_consolidation_opportunities(property)
+
         return insights_created
     
     def _find_striking_distance(self, property: str = None) -> int:
@@ -48,7 +50,7 @@ class OpportunityDetector(BaseDetector):
                         property,
                         page_path,
                         date,
-                        gsc_avg_position,
+                        gsc_position,
                         gsc_impressions,
                         gsc_clicks,
                         gsc_ctr,
@@ -56,7 +58,7 @@ class OpportunityDetector(BaseDetector):
                         ga_engagement_rate
                     FROM gsc.vw_unified_page_performance
                     WHERE date >= CURRENT_DATE - INTERVAL '7 days'
-                    AND is_striking_distance = TRUE
+                    AND gsc_position BETWEEN 11 AND 20  -- Striking distance
                     AND gsc_impressions > 100  -- High volume
                 """
                 
@@ -82,7 +84,7 @@ class OpportunityDetector(BaseDetector):
                         category=InsightCategory.OPPORTUNITY,
                         title="Striking Distance Opportunity",
                         description=(
-                            f"Page ranks in position {row['gsc_avg_position']:.1f} "
+                            f"Page ranks in position {row['gsc_position']:.1f} "
                             f"with {row['gsc_impressions']} impressions. "
                             f"Small ranking improvement could yield significant traffic gains. "
                             f"Current CTR: {row['gsc_ctr']*100:.2f}%."
@@ -90,7 +92,7 @@ class OpportunityDetector(BaseDetector):
                         severity=InsightSeverity.MEDIUM,
                         confidence=0.8,
                         metrics=InsightMetrics(
-                            gsc_position=row['gsc_avg_position'],
+                            gsc_position=row['gsc_position'],
                             gsc_impressions=row['gsc_impressions'],
                             gsc_clicks=row['gsc_clicks'],
                             gsc_ctr=row['gsc_ctr'],
@@ -178,8 +180,70 @@ class OpportunityDetector(BaseDetector):
                     insights_created += 1
                 except Exception as e:
                     logger.warning(f"Failed to create content gap insight: {e}")
-            
+
             return insights_created
-            
+
         finally:
             conn.close()
+
+    def _find_url_consolidation_opportunities(self, property: str = None) -> int:
+        """Find URL consolidation opportunities using URLConsolidator"""
+        insights_created = 0
+
+        try:
+            from insights_core.url_consolidator import URLConsolidator
+
+            consolidator = URLConsolidator(db_dsn=self.conn_string)
+
+            # Get properties to analyze
+            if property:
+                properties = [property]
+            else:
+                # Get all properties from database
+                conn = self._get_db_connection()
+                try:
+                    from psycopg2.extras import RealDictCursor
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute("""
+                            SELECT DISTINCT property
+                            FROM gsc.vw_unified_page_performance
+                            WHERE date >= CURRENT_DATE - INTERVAL '30 days'
+                        """)
+                        properties = [row['property'] for row in cur.fetchall()]
+                finally:
+                    conn.close()
+
+            logger.info(f"Analyzing URL consolidation for {len(properties)} properties")
+
+            # Find candidates for each property
+            for prop in properties:
+                try:
+                    candidates = consolidator.find_consolidation_candidates(prop, limit=25)
+
+                    if not candidates:
+                        logger.debug(f"No consolidation candidates for {prop}")
+                        continue
+
+                    # Create insights for high-priority candidates
+                    for candidate in candidates:
+                        # Only create insights for medium+ priority
+                        if candidate.get('consolidation_score', 0) >= consolidator.MEDIUM_PRIORITY_SCORE:
+                            try:
+                                insight = consolidator.create_consolidation_insight(candidate, prop)
+                                self.repository.create(insight)
+                                insights_created += 1
+                            except Exception as e:
+                                logger.warning(f"Failed to create consolidation insight for {candidate.get('canonical_url')}: {e}")
+
+                except Exception as e:
+                    logger.warning(f"Error analyzing consolidation for property {prop}: {e}")
+
+            logger.info(f"Created {insights_created} URL consolidation insights")
+            return insights_created
+
+        except ImportError as e:
+            logger.error(f"URLConsolidator not available: {e}")
+            return 0
+        except Exception as e:
+            logger.error(f"Error in URL consolidation detection: {e}")
+            return 0
