@@ -1,0 +1,251 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'plans/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: 'Push images to registry'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  # ==========================================
+  # BUILD BASE IMAGE
+  # ==========================================
+  build-base:
+    name: Build Base Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_name: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-base
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push base image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./compose/dockerfiles/Dockerfile.base
+          target: base-runtime
+          push: ${{ github.event_name != 'pull_request' || github.event.inputs.push_images == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-base:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-base:latest
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-base:buildcache,mode=max
+          platforms: linux/amd64
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Image digest
+        run: echo ${{ steps.build.outputs.digest }}
+
+  # ==========================================
+  # BUILD SERVICE IMAGES
+  # ==========================================
+  build-services:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: build-base
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api_ingestor
+            dockerfile: Dockerfile.api_ingestor.new
+          - name: ga4_ingestor
+            dockerfile: Dockerfile.ga4_ingestor.new
+          - name: scheduler
+            dockerfile: Dockerfile.scheduler.new
+          - name: transformer
+            dockerfile: Dockerfile.transformer.new
+          - name: insights_engine
+            dockerfile: Dockerfile.insights_engine.new
+          - name: insights_api
+            dockerfile: Dockerfile.insights_api.new
+          - name: mcp
+            dockerfile: Dockerfile.mcp.new
+          - name: metrics
+            dockerfile: Dockerfile.metrics.new
+          - name: celery
+            dockerfile: Dockerfile.celery.new
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push ${{ matrix.service.name }}
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./compose/dockerfiles/${{ matrix.service.dockerfile }}
+          target: runtime
+          push: ${{ github.event_name != 'pull_request' || github.event.inputs.push_images == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-${{ matrix.service.name }}:buildcache
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-${{ matrix.service.name }}:latest
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-${{ matrix.service.name }}:buildcache,mode=max
+          platforms: linux/amd64
+          build-args: |
+            BASE_IMAGE=${{ needs.build-base.outputs.image_name }}
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Image digest
+        run: echo ${{ steps.build.outputs.digest }}
+
+  # ==========================================
+  # SECURITY SCANNING
+  # ==========================================
+  security-scan:
+    name: Security Scan - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: build-services
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api_ingestor
+          - insights_api
+          - celery
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gsc-${{ matrix.service }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ==========================================
+  # BUILD SUMMARY
+  # ==========================================
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-base, build-services]
+    if: always()
+
+    steps:
+      - name: Check build status
+        run: |
+          echo "Base Image: ${{ needs.build-base.result }}"
+          echo "Services: ${{ needs.build-services.result }}"
+
+          if [ "${{ needs.build-base.result }}" != "success" ] || [ "${{ needs.build-services.result }}" != "success" ]; then
+            echo "Build failed!"
+            exit 1
+          fi
+
+          echo "All builds successful!"
+
+      - name: Summary
+        run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Base Image Digest: ${{ needs.build-base.outputs.image_digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Registry: ${{ env.REGISTRY }}" >> $GITHUB_STEP_SUMMARY
+          echo "Repository: ${{ env.IMAGE_PREFIX }}" >> $GITHUB_STEP_SUMMARY

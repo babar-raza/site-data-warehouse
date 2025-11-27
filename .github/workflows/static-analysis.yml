@@ -1,0 +1,124 @@
+name: Static Analysis
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint:
+    name: Python Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: Run flake8
+        run: |
+          flake8 . --max-line-length=120 --ignore=E501,W503 --exclude=.git,__pycache__,venv,env,.venv,.tox,.eggs,*.egg,build,dist
+
+      - name: Run black
+        run: |
+          black --check .
+
+      - name: Run isort
+        run: |
+          isort --check-only .
+
+  type-check:
+    name: Type Checking
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install mypy types-requests types-PyYAML
+
+      - name: Run mypy
+        run: |
+          mypy --config-file mypy.ini . || true
+
+  sql-lint:
+    name: SQL Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install sqlfluff
+        run: |
+          python -m pip install --upgrade pip
+          pip install sqlfluff
+
+      - name: Run sqlfluff
+        run: |
+          sqlfluff lint --dialect postgres sql/
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install bandit safety
+
+      - name: Run bandit
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -f screen
+
+      - name: Run safety check
+        run: |
+          safety check --json || true
+          safety check
+
+      - name: Upload bandit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+          retention-days: 30

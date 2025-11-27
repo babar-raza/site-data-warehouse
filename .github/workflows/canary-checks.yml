@@ -1,0 +1,194 @@
+name: Canary Checks
+
+on:
+  # Run every 6 hours
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+  # Run on deployment
+  workflow_run:
+    workflows: ["Deploy to Production"]
+    types:
+      - completed
+
+jobs:
+  canary-checks:
+    name: Run Canary Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        environment: [production, staging]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install psycopg2-binary httpx
+
+      - name: Run canary checks - ${{ matrix.environment }}
+        id: canary
+        env:
+          WAREHOUSE_DSN: ${{ secrets[format('WAREHOUSE_DSN_{0}', matrix.environment)] }}
+          INSIGHTS_API_URL: ${{ secrets[format('INSIGHTS_API_URL_{0}', matrix.environment)] }}
+          SCHEDULER_METRICS_FILE: /logs/scheduler_metrics.json
+        run: |
+          python scripts/canary_checks.py \
+            --environment ${{ matrix.environment }} \
+            --output canary-report-${{ matrix.environment }}.json \
+            --verbose
+        continue-on-error: true
+
+      - name: Upload canary report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-report-${{ matrix.environment }}
+          path: canary-report-${{ matrix.environment }}.json
+          retention-days: 30
+
+      - name: Parse check results
+        if: always()
+        id: parse
+        run: |
+          if [ -f "canary-report-${{ matrix.environment }}.json" ]; then
+            status=$(jq -r '.overall_status' canary-report-${{ matrix.environment }}.json)
+            passed=$(jq -r '.summary.passed' canary-report-${{ matrix.environment }}.json)
+            failed=$(jq -r '.summary.failed' canary-report-${{ matrix.environment }}.json)
+            warned=$(jq -r '.summary.warned' canary-report-${{ matrix.environment }}.json)
+
+            echo "status=$status" >> $GITHUB_OUTPUT
+            echo "passed=$passed" >> $GITHUB_OUTPUT
+            echo "failed=$failed" >> $GITHUB_OUTPUT
+            echo "warned=$warned" >> $GITHUB_OUTPUT
+          else
+            echo "status=error" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create check summary
+        if: always()
+        run: |
+          echo "## Canary Checks - ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.parse.outputs.status }}" == "pass" ]; then
+            echo "✅ **Status:** PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Passed: ${{ steps.parse.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Failed: ${{ steps.parse.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Warned: ${{ steps.parse.outputs.warned }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "canary-report-${{ matrix.environment }}.json" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Check Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            jq '.checks[] | {name: .name, status: .status, message: .message}' \
+              canary-report-${{ matrix.environment }}.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify on failure
+        if: failure() && matrix.environment == 'production'
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "🚨 Canary checks FAILED for ${{ matrix.environment }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚨 Canary Check Failure"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ matrix.environment }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ steps.parse.outputs.status }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Failed Checks:*\n${{ steps.parse.outputs.failed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Fail job if checks failed
+        if: steps.parse.outputs.status != 'pass'
+        run: |
+          echo "Canary checks failed for ${{ matrix.environment }}"
+          exit 1
+
+  aggregate-results:
+    name: Aggregate Results
+    runs-on: ubuntu-latest
+    needs: canary-checks
+    if: always()
+
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+
+      - name: Aggregate and summarize
+        run: |
+          echo "# Canary Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for env in production staging; do
+            if [ -f "reports/canary-report-${env}/canary-report-${env}.json" ]; then
+              status=$(jq -r '.overall_status' "reports/canary-report-${env}/canary-report-${env}.json")
+
+              echo "## ${env^}" >> $GITHUB_STEP_SUMMARY
+
+              if [ "$status" == "pass" ]; then
+                echo "✅ All checks passed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ Some checks failed" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

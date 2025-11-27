@@ -1,0 +1,223 @@
+name: Dashboard Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'grafana/**'
+      - 'tests/dashboards/**'
+      - 'sql/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'grafana/**'
+      - 'tests/dashboards/**'
+      - 'sql/**'
+  workflow_dispatch:
+
+jobs:
+  mock-tests:
+    name: Mock Tests (Fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r requirements.txt
+
+      - name: Run mock dashboard tests
+        run: |
+          pytest tests/dashboards/test_dashboard_schema.py \
+                 tests/dashboards/test_dashboard_queries_mock.py \
+                 tests/dashboards/test_dashboard_variables.py \
+                 -v --tb=short
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: mock-test-results
+          path: |
+            .coverage
+            htmlcov/
+
+  live-tests:
+    name: Live Tests (Database)
+    runs-on: ubuntu-latest
+    needs: mock-tests
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: gsc_test
+          POSTGRES_USER: gsc_user
+          POSTGRES_PASSWORD: gsc_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r requirements.txt
+
+      - name: Initialize database schema
+        run: |
+          PGPASSWORD=gsc_password psql -h localhost -U gsc_user -d gsc_test -f sql/00_extensions.sql || true
+          for f in sql/*.sql; do
+            PGPASSWORD=gsc_password psql -h localhost -U gsc_user -d gsc_test -f "$f" || true
+          done
+        env:
+          PGPASSWORD: gsc_password
+
+      - name: Seed test data
+        run: |
+          python -m tests.dashboards.fixtures.seed_dashboard_data
+        env:
+          WAREHOUSE_DSN: postgresql://gsc_user:gsc_password@localhost:5432/gsc_test
+          TEST_MODE: live
+
+      - name: Run live dashboard tests
+        run: |
+          pytest tests/dashboards/test_dashboard_queries_live.py \
+                 tests/dashboards/test_dashboard_data.py \
+                 -v --tb=short -m live
+        env:
+          WAREHOUSE_DSN: postgresql://gsc_user:gsc_password@localhost:5432/gsc_test
+          TEST_MODE: live
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: live-test-results
+          path: |
+            .coverage
+            htmlcov/
+
+  ui-tests:
+    name: UI Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: live-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: gsc_db
+          POSTGRES_USER: gsc_user
+          POSTGRES_PASSWORD: gsc_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose up -d postgres grafana
+          sleep 30  # Wait for services to be ready
+
+      - name: Run UI tests
+        run: |
+          pytest tests/dashboards/ui/ -v --tb=short -m ui --timeout=120
+        env:
+          GRAFANA_URL: http://localhost:3000
+          GRAFANA_USER: admin
+          GRAFANA_PASSWORD: admin
+          HEADLESS: true
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: ui-test-screenshots
+          path: tests/dashboards/ui/screenshots/
+
+      - name: Stop services
+        if: always()
+        run: docker-compose down
+
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: [mock-tests, live-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download mock test results
+        uses: actions/download-artifact@v3
+        with:
+          name: mock-test-results
+          path: coverage-mock/
+
+      - name: Download live test results
+        uses: actions/download-artifact@v3
+        with:
+          name: live-test-results
+          path: coverage-live/
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install coverage
+        run: pip install coverage
+
+      - name: Combine coverage
+        run: |
+          coverage combine coverage-mock/.coverage coverage-live/.coverage || true
+          coverage report --fail-under=70 || true
+          coverage html
+
+      - name: Upload combined coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: htmlcov/

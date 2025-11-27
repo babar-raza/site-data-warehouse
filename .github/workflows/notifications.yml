@@ -1,0 +1,145 @@
+name: Workflow Failure Notifications
+
+on:
+  workflow_run:
+    workflows: ["*"]
+    types:
+      - completed
+
+jobs:
+  notify-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    steps:
+      - name: Extract workflow information
+        id: workflow-info
+        run: |
+          echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
+          echo "workflow_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          echo "run_number=${{ github.event.workflow_run.run_number }}" >> $GITHUB_OUTPUT
+          echo "run_attempt=${{ github.event.workflow_run.run_attempt }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          echo "commit_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          echo "commit_message=$(echo '${{ github.event.workflow_run.head_commit.message }}' | head -n 1)" >> $GITHUB_OUTPUT
+          echo "author=${{ github.event.workflow_run.head_commit.author.name }}" >> $GITHUB_OUTPUT
+          echo "workflow_url=${{ github.event.workflow_run.html_url }}" >> $GITHUB_OUTPUT
+          echo "repo_url=${{ github.event.repository.html_url }}" >> $GITHUB_OUTPUT
+
+      - name: Format commit SHA
+        id: format-commit
+        run: |
+          FULL_SHA="${{ steps.workflow-info.outputs.commit_sha }}"
+          SHORT_SHA="${FULL_SHA:0:7}"
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": ":x: Workflow Failed",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ steps.workflow-info.outputs.workflow_url }}|${{ steps.workflow-info.outputs.workflow_name }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n<${{ steps.workflow-info.outputs.repo_url }}|${{ github.repository }}>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n`${{ steps.workflow-info.outputs.branch }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Run Number:*\n#${{ steps.workflow-info.outputs.run_number }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n<${{ steps.workflow-info.outputs.repo_url }}/commit/${{ steps.workflow-info.outputs.commit_sha }}|${{ steps.format-commit.outputs.short_sha }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ steps.workflow-info.outputs.author }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Commit Message:*\n${{ steps.workflow-info.outputs.commit_message }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run",
+                        "emoji": true
+                      },
+                      "url": "${{ steps.workflow-info.outputs.workflow_url }}",
+                      "style": "danger"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Commit",
+                        "emoji": true
+                      },
+                      "url": "${{ steps.workflow-info.outputs.repo_url }}/commit/${{ steps.workflow-info.outputs.commit_sha }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Repository",
+                        "emoji": true
+                      },
+                      "url": "${{ steps.workflow-info.outputs.repo_url }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Triggered at: <!date^${{ github.event.workflow_run.updated_at }}^{date_num} {time_secs}|${{ github.event.workflow_run.updated_at }}>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
