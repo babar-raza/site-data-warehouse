@@ -55,17 +55,17 @@
   "templating": {
     "list": [
       {
-        "allValue": "All",
+        "allValue": "'ALL'",
         "current": {"selected": true, "text": "All", "value": "$__all"},
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
-        "definition": "SELECT DISTINCT property FROM gsc.fact_ga4_daily ORDER BY property",
+        "definition": "SELECT DISTINCT split_part(regexp_replace(url, '^https?://', ''), '/', 1) FROM gsc.fact_gsc_daily WHERE url IS NOT NULL ORDER BY 1",
         "hide": 0,
         "includeAll": true,
-        "label": "Property",
+        "label": "Subdomain",
         "multi": false,
-        "name": "property",
+        "name": "subdomain",
         "options": [],
-        "query": "SELECT DISTINCT property FROM gsc.fact_ga4_daily ORDER BY property",
+        "query": "SELECT DISTINCT split_part(regexp_replace(url, '^https?://', ''), '/', 1) FROM gsc.fact_gsc_daily WHERE url IS NOT NULL ORDER BY 1",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -110,7 +110,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT SUM(sessions)::bigint as \"Total Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "rawSql": "SELECT SUM(sessions)::bigint as \"Total Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})",
         "refId": "A"
       }],
       "options": {
@@ -144,7 +144,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT SUM(conversions)::bigint as \"Total Conversions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "rawSql": "SELECT SUM(conversions)::bigint as \"Total Conversions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})",
         "refId": "A"
       }],
       "options": {
@@ -175,7 +175,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT ROUND(AVG(engagement_rate)::numeric, 4) as \"Engagement Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')",
+        "rawSql": "SELECT ROUND(AVG(engagement_rate)::numeric, 4) as \"Engagement Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})",
         "refId": "A"
       }],
       "options": {
@@ -207,7 +207,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT ROUND(AVG(bounce_rate)::numeric, 4) as \"Bounce Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')",
+        "rawSql": "SELECT ROUND(AVG(bounce_rate)::numeric, 4) as \"Bounce Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})",
         "refId": "A"
       }],
       "options": {
@@ -246,7 +246,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "WITH current_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "rawSql": "WITH current_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})), previous_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
         "refId": "A"
       }],
       "options": {
@@ -279,7 +279,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "WITH current_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "rawSql": "WITH current_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})), previous_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
         "refId": "A"
       }],
       "options": {
@@ -312,7 +312,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "WITH current_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "rawSql": "WITH current_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})), previous_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
         "refId": "A"
       }],
       "options": {
@@ -345,7 +345,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0) * 100), 2) as \"Conversion Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "rawSql": "SELECT ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0) * 100), 2) as \"Conversion Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})",
         "refId": "A"
       }],
       "options": {
@@ -386,7 +386,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "time_series",
-        "rawSql": "SELECT date as time, SUM(sessions) as sessions, SUM(engaged_sessions) as engaged_sessions FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
+        "rawSql": "SELECT date as time, SUM(sessions) as sessions, SUM(engaged_sessions) as engaged_sessions FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain}) GROUP BY date ORDER BY date",
         "refId": "A"
       }],
       "options": {
@@ -417,13 +417,13 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
           "format": "time_series",
-          "rawSql": "SELECT date as time, SUM(clicks) as \"GSC Clicks\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' GROUP BY date ORDER BY date",
+          "rawSql": "SELECT date as time, SUM(clicks) as \"GSC Clicks\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(url, '^https?://', ''), '/', 1) = ${subdomain}) GROUP BY date ORDER BY date",
           "refId": "A"
         },
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
           "format": "time_series",
-          "rawSql": "SELECT date as time, SUM(sessions) as \"GA4 Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
+          "rawSql": "SELECT date as time, SUM(sessions) as \"GA4 Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain}) GROUP BY date ORDER BY date",
           "refId": "B"
         }
       ],
@@ -459,7 +459,7 @@
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(sessions) as sessions, SUM(conversions) as conversions, ROUND(AVG(conversion_rate)::numeric, 4) as avg_conversion_rate, ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement_rate, ROUND(AVG(bounce_rate)::numeric, 4) as avg_bounce_rate FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property') GROUP BY property, page_path ORDER BY conversions DESC, sessions DESC LIMIT 50",
+        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(sessions) as sessions, SUM(conversions) as conversions, ROUND(AVG(conversion_rate)::numeric, 4) as avg_conversion_rate, ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement_rate, ROUND(AVG(bounce_rate)::numeric, 4) as avg_bounce_rate FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain}) GROUP BY property, page_path ORDER BY conversions DESC, sessions DESC LIMIT 50",
         "refId": "A"
       }],
       "options": {
@@ -515,75 +515,78 @@
       }
     },
     {
-      "id": 104,
-      "title": "Distribution",
+      "id": 105,
+      "title": "Insights",
       "type": "row",
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 30},
       "collapsed": false
     },
     {
-      "id": 17,
-      "title": "Engagement Distribution",
-      "description": "Distribution of pages by engagement rate",
-      "type": "piechart",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 31},
+      "id": 19,
+      "title": "Recent Insights",
+      "description": "Latest insights detected for pages - opportunities, risks, and diagnoses",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 31},
       "targets": [{
         "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
         "format": "table",
-        "rawSql": "SELECT category, COUNT(*) as count FROM (SELECT CASE WHEN AVG(engagement_rate) >= 0.5 THEN 'High (50%+)' WHEN AVG(engagement_rate) >= 0.3 THEN 'Medium (30-50%)' WHEN AVG(engagement_rate) >= 0.1 THEN 'Low (10-30%)' ELSE 'Very Low (<10%)' END as category FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property') GROUP BY property, page_path HAVING COUNT(*) > 0) page_engagement GROUP BY category ORDER BY CASE category WHEN 'High (50%+)' THEN 1 WHEN 'Medium (30-50%)' THEN 2 WHEN 'Low (10-30%)' THEN 3 ELSE 4 END",
+        "rawSql": "SELECT split_part(regexp_replace(property, '^https?://', ''), '/', 1) as hostname, entity_id as page, category, severity, title, description, generated_at FROM gsc.insights WHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain}) ORDER BY generated_at DESC LIMIT 15",
         "refId": "A"
       }],
       "options": {
-        "displayLabels": ["percent", "value"],
-        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
-        "pieType": "donut",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
-        "tooltip": {"mode": "single"}
+        "showHeader": true,
+        "sortBy": [{"displayName": "generated_at", "desc": true}],
+        "cellHeight": "sm"
       },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "mappings": []
-        }
-      }
-    },
-    {
-      "id": 18,
-      "title": "Conversion Rate Trend",
-      "description": "Daily conversion rate over time",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 31},
-      "targets": [{
-        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
-        "format": "time_series",
-        "rawSql": "SELECT date as time, ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0) * 100), 2) as \"Conversion Rate %\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
-        "refId": "A"
-      }],
-      "options": {
-        "tooltip": {"mode": "single"},
-        "legend": {"displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"]}
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "color": {"mode": "palette-classic"},
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 20,
-            "spanNulls": true,
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "thresholdsStyle": {"mode": "line"}
+          "custom": {"align": "auto", "displayMode": "auto", "filterable": true}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "hostname"},
+            "properties": [{"id": "custom.width", "value": 150}]
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "#F2495C", "value": null},
-              {"color": "#FADE2A", "value": 1},
-              {"color": "#73BF69", "value": 3}
+          {
+            "matcher": {"id": "byName", "options": "page"},
+            "properties": [{"id": "custom.width", "value": 300}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "category"},
+            "properties": [
+              {"id": "custom.width", "value": 100},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "mappings", "value": [
+                {"options": {"opportunity": {"color": "green", "index": 0}}, "type": "value"},
+                {"options": {"risk": {"color": "red", "index": 1}}, "type": "value"},
+                {"options": {"diagnosis": {"color": "blue", "index": 2}}, "type": "value"}
+              ]}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "severity"},
+            "properties": [
+              {"id": "custom.width", "value": 80},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "mappings", "value": [
+                {"options": {"high": {"color": "red", "index": 0}}, "type": "value"},
+                {"options": {"medium": {"color": "yellow", "index": 1}}, "type": "value"},
+                {"options": {"low": {"color": "green", "index": 2}}, "type": "value"}
+              ]}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "title"},
+            "properties": [{"id": "custom.width", "value": 250}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "generated_at"},
+            "properties": [
+              {"id": "custom.width", "value": 150},
+              {"id": "unit", "value": "dateTimeAsLocal"}
             ]
           }
-        }
+        ]
       }
     }
   ],

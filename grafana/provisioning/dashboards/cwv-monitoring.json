@@ -85,7 +85,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(performance_score)::numeric, 0) as \"Performance Score\"\nFROM performance.vw_cwv_current\nWHERE property = '$property'\n  AND strategy = '$device'",
+          "rawSql": "SELECT ROUND(AVG(performance_score)::numeric, 0) as \"Performance Score\"\nFROM performance.vw_cwv_current\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'",
           "refId": "A"
         }
       ],
@@ -152,7 +152,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(lcp)::numeric, 0) as \"LCP\"\nFROM performance.vw_cwv_current\nWHERE property = '$property'\n  AND strategy = '$device'\n  AND lcp IS NOT NULL",
+          "rawSql": "SELECT ROUND(AVG(lcp)::numeric, 0) as \"LCP\"\nFROM performance.vw_cwv_current\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\n  AND lcp IS NOT NULL",
           "refId": "A"
         }
       ],
@@ -219,7 +219,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(fid)::numeric, 0) as \"FID\"\nFROM performance.vw_cwv_current\nWHERE property = '$property'\n  AND strategy = '$device'\n  AND fid IS NOT NULL",
+          "rawSql": "SELECT ROUND(AVG(fid)::numeric, 0) as \"FID\"\nFROM performance.vw_cwv_current\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\n  AND fid IS NOT NULL",
           "refId": "A"
         }
       ],
@@ -289,7 +289,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(cls)::numeric, 3) as \"CLS\"\nFROM performance.vw_cwv_current\nWHERE property = '$property'\n  AND strategy = '$device'\n  AND cls IS NOT NULL",
+          "rawSql": "SELECT ROUND(AVG(cls)::numeric, 3) as \"CLS\"\nFROM performance.vw_cwv_current\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\n  AND cls IS NOT NULL",
           "refId": "A"
         }
       ],
@@ -377,7 +377,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  check_date as time,\n  'Performance Score' as metric,\n  AVG(performance_score) as value\nFROM performance.core_web_vitals\nWHERE property = '$property'\n  AND strategy = '$device'\n  AND $__timeFilter(check_date)\nGROUP BY check_date\nORDER BY check_date",
+          "rawSql": "SELECT\n  check_date as time,\n  'Performance Score' as metric,\n  AVG(performance_score) as value\nFROM performance.core_web_vitals\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\n  AND $__timeFilter(check_date)\nGROUP BY check_date\nORDER BY check_date",
           "refId": "A"
         }
       ],
@@ -471,7 +471,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  check_date as time,\n  'LCP' as metric,\n  AVG(lcp) as value\nFROM performance.core_web_vitals\nWHERE property = '$property'\n  AND strategy = '$device'\n  AND lcp IS NOT NULL\n  AND $__timeFilter(check_date)\nGROUP BY check_date\nORDER BY check_date",
+          "rawSql": "SELECT\n  check_date as time,\n  'LCP' as metric,\n  AVG(lcp) as value\nFROM performance.core_web_vitals\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\n  AND lcp IS NOT NULL\n  AND $__timeFilter(check_date)\nGROUP BY check_date\nORDER BY check_date",
           "refId": "A"
         }
       ],
@@ -568,7 +568,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT * FROM performance.vw_poor_cwv\nWHERE property = '$property'\n  AND strategy = '$device'\nORDER BY performance_score ASC\nLIMIT 30",
+          "rawSql": "SELECT * FROM performance.vw_poor_cwv\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\nORDER BY performance_score ASC\nLIMIT 30",
           "refId": "A"
         }
       ],
@@ -633,7 +633,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE\n    WHEN performance_score >= 90 THEN 'Good (90-100)'\n    WHEN performance_score >= 50 THEN 'Needs Improvement (50-89)'\n    ELSE 'Poor (<50)'\n  END as category,\n  COUNT(*) as count\nFROM performance.vw_cwv_current\nWHERE property = '$property'\n  AND strategy = '$device'\nGROUP BY category",
+          "rawSql": "SELECT\n  CASE\n    WHEN performance_score >= 90 THEN 'Good (90-100)'\n    WHEN performance_score >= 50 THEN 'Needs Improvement (50-89)'\n    ELSE 'Poor (<50)'\n  END as category,\n  COUNT(*) as count\nFROM performance.vw_cwv_current\nWHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n  AND strategy = '$device'\nGROUP BY category",
           "refId": "A"
         }
       ],
@@ -691,7 +691,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  page_path as \"Page\",\n  (opportunity->>'title') as \"Opportunity\",\n  ROUND((opportunity->>'overallSavingsMs')::FLOAT, 0) as \"Potential Savings (ms)\"\nFROM (\n  SELECT\n    page_path,\n    jsonb_array_elements(opportunities) as opportunity\n  FROM performance.core_web_vitals\n  WHERE property = '$property'\n    AND strategy = '$device'\n    AND check_date = (SELECT MAX(check_date) FROM performance.core_web_vitals WHERE property = '$property' AND strategy = '$device')\n    AND opportunities IS NOT NULL\n) sub\nWHERE (opportunity->>'overallSavingsMs')::FLOAT > 0\nORDER BY (opportunity->>'overallSavingsMs')::FLOAT DESC\nLIMIT 20",
+          "rawSql": "SELECT\n  page_path as \"Page\",\n  (opportunity->>'title') as \"Opportunity\",\n  ROUND((opportunity->>'overallSavingsMs')::FLOAT, 0) as \"Potential Savings (ms)\"\nFROM (\n  SELECT\n    page_path,\n    jsonb_array_elements(opportunities) as opportunity\n  FROM performance.core_web_vitals\n  WHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain})\n    AND strategy = '$device'\n    AND check_date = (SELECT MAX(check_date) FROM performance.core_web_vitals WHERE (UPPER(${subdomain}) = 'ALL' OR split_part(regexp_replace(property, '^https?://', ''), '/', 1) = ${subdomain}) AND strategy = '$device')\n    AND opportunities IS NOT NULL\n) sub\nWHERE (opportunity->>'overallSavingsMs')::FLOAT > 0\nORDER BY (opportunity->>'overallSavingsMs')::FLOAT DESC\nLIMIT 20",
           "refId": "A"
         }
       ],
@@ -710,27 +710,24 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "https://blog.aspose.net",
-          "value": "https://blog.aspose.net"
-        },
+        "allValue": "'ALL'",
+        "current": {"selected": true, "text": "All", "value": "$__all"},
         "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "postgres-gsc"
         },
-        "definition": "SELECT DISTINCT property FROM performance.core_web_vitals ORDER BY property",
+        "definition": "SELECT DISTINCT split_part(regexp_replace(url, '^https?://', ''), '/', 1) FROM gsc.fact_gsc_daily WHERE url IS NOT NULL ORDER BY 1",
         "hide": 0,
-        "includeAll": false,
-        "label": "Property",
+        "includeAll": true,
+        "label": "Subdomain",
         "multi": false,
-        "name": "property",
+        "name": "subdomain",
         "options": [],
-        "query": "SELECT DISTINCT property FROM performance.core_web_vitals ORDER BY property",
+        "query": "SELECT DISTINCT split_part(regexp_replace(url, '^https?://', ''), '/', 1) FROM gsc.fact_gsc_daily WHERE url IS NOT NULL ORDER BY 1",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "type": "query"
       },
       {
