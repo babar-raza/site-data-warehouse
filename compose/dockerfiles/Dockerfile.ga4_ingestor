@@ -1,24 +1,77 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# GA4 INGESTOR - PRODUCTION
+# =============================================
+# Google Analytics 4 data ingestion
+# Based on shared base image with ingestor dependencies
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG BASE_IMAGE=gsc-base:latest
 
-# Set working directory
-WORKDIR /app
+# =============================================
+# STAGE 1: Builder - Install Service Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Copy requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+USER root
 
-# Copy GA4 ingestor code
-COPY ingestors/ga4/ /app/ingestors/ga4/
+# Install ingestor-specific dependencies with cache mount
+COPY requirements/ /tmp/requirements/
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/ingestors.txt
+
+# Verify GA4 installation
+RUN python -c "from google.analytics.data_v1beta import BetaAnalyticsDataClient; print('GA4 client verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="ga4_ingestor"
+LABEL description="Google Analytics 4 Data Ingestor"
+
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser ingestors/ga4/ /app/ingestors/ga4/
+COPY --chown=appuser:appuser ingestors/__init__.py /app/ingestors/__init__.py
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    GA4_CREDENTIALS_PATH=/secrets/gsc_sa.json \
+    SERVICE_NAME=ga4_ingestor
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "import sys; sys.path.insert(0, '/app/ingestors'); from ga4.ga4_client import GA4Client; print('healthy')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import sys; from ingestors.ga4.ga4_client import GA4Client; sys.exit(0)" || exit 1
 
 # Default command
 CMD ["python", "/app/ingestors/ga4/ga4_extractor.py"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER root
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir watchdog[watchmedo]>=3.0.0
+
+USER appuser
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD python -c "import sys; sys.exit(0)"
+
+CMD ["watchmedo", "auto-restart", "--directory=/app/ingestors/ga4", "--pattern=*.py", "--recursive", "--", "python", "/app/ingestors/ga4/ga4_extractor.py"]

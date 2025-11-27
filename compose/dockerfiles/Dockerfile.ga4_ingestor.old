@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy GA4 ingestor code
+COPY ingestors/ga4/ /app/ingestors/ga4/
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import sys; sys.path.insert(0, '/app/ingestors'); from ga4.ga4_client import GA4Client; print('healthy')" || exit 1
+
+# Default command
+CMD ["python", "/app/ingestors/ga4/ga4_extractor.py"]

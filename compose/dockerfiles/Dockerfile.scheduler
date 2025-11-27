@@ -1,26 +1,80 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# SCHEDULER - PRODUCTION
+# =============================================
+# APScheduler-based task orchestration
+# Runs periodic ingestion and maintenance tasks
 
-WORKDIR /app
+ARG BASE_IMAGE=gsc-base:latest
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    postgresql-client \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# =============================================
+# STAGE 1: Builder - Install Service Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Install Python dependencies
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir apscheduler==3.10.4 flask==3.0.0
+USER root
+
+# Install scheduler dependencies (includes ingestors)
+COPY requirements/ /tmp/requirements/
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/scheduler.txt
+
+# Verify installations
+RUN python -c "from apscheduler.schedulers.blocking import BlockingScheduler; print('APScheduler verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="scheduler"
+LABEL description="Task Scheduler and Orchestrator"
+
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY scheduler/ /app/
-COPY ingestors/ /app/ingestors/
-COPY transform/ /app/transform/
+COPY --chown=appuser:appuser scheduler/ /app/scheduler/
+COPY --chown=appuser:appuser ingestors/ /app/ingestors/
+COPY --chown=appuser:appuser transform/ /app/transform/
+COPY --chown=appuser:appuser scripts/ /app/scripts/
 
-# Create logs directory
-RUN mkdir -p /logs
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=scheduler
+
+# Health check - verify scheduler is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import sys; import os; sys.exit(0 if os.path.exists('/tmp/scheduler_healthy') else 1)"
 
 # Default command
-CMD ["python", "scheduler.py"]
+CMD ["python", "/app/scheduler/scheduler.py"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER root
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir watchdog[watchmedo]>=3.0.0
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD python -c "import sys; sys.exit(0)"
+
+CMD ["watchmedo", "auto-restart", "--directory=/app/scheduler", "--pattern=*.py", "--recursive", "--", "python", "/app/scheduler/scheduler.py"]

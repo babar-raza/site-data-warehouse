@@ -1,21 +1,73 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# METRICS EXPORTER - PRODUCTION
+# =============================================
+# Prometheus metrics exporter
+# Flask-based metrics endpoint
 
-WORKDIR /app
+ARG BASE_IMAGE=gsc-base:latest
 
-# Install dependencies
-RUN pip install --no-cache-dir \
-    flask==3.0.0 \
-    psycopg2-binary==2.9.9 \
-    gunicorn==21.2.0
+# =============================================
+# STAGE 1: Builder - Install Metrics Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Copy metrics exporter
-COPY scheduler/metrics_exporter.py /app/
+USER root
 
-# Create logs directory
-RUN mkdir -p /logs
+# Install metrics dependencies with cache mount
+COPY requirements/ /tmp/requirements/
 
-# Expose metrics port
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/metrics.txt
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="metrics_exporter"
+LABEL description="Prometheus Metrics Exporter"
+
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser metrics_exporter/ /app/metrics_exporter/
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
+
+# Expose port
 EXPOSE 8002
 
-# Run with gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:8002", "--workers", "2", "--timeout", "120", "metrics_exporter:app"]
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=metrics_exporter \
+    METRICS_PORT=8002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8002/metrics || exit 1
+
+# Production: Run prometheus exporter directly
+CMD ["python", "-m", "metrics_exporter.exporter"]
+
+# =============================================
+# STAGE 3: Development
+# =============================================
+FROM runtime AS development
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD curl -f http://localhost:8002/metrics || exit 1
+
+CMD ["python", "-m", "metrics_exporter.exporter"]

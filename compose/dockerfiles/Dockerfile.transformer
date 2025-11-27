@@ -1,19 +1,48 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# TRANSFORMER - PRODUCTION
+# =============================================
+# SQL transformation runner
+# Minimal dependencies (just base + PostgreSQL client)
 
-WORKDIR /app
+ARG BASE_IMAGE=gsc-base:latest
 
-# Install PostgreSQL client for psql if needed
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends postgresql-client && \
-    rm -rf /var/lib/apt/lists/*
+# =============================================
+# Runtime - Production Image (No Builder Needed)
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
 
-# Copy requirements
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+LABEL service="transformer"
+LABEL description="SQL Transformation Runner"
 
-# Copy transform scripts
-COPY transform/ /app/
-COPY sql/ /sql/
+USER root
 
-# Set entrypoint
-CMD ["python", "apply_transforms.py"]
+# Copy application code
+COPY --chown=appuser:appuser transform/ /app/transform/
+COPY --chown=appuser:appuser sql/ /app/sql/
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=transformer
+
+# Health check - verify Python and psql available
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; import psycopg2; sys.exit(0)" || exit 1
+
+# Default command
+CMD ["python", "/app/transform/apply_transforms.py"]
+
+# =============================================
+# Development - Same as production (one-shot)
+# =============================================
+FROM runtime AS development
+
+ENV LOG_LEVEL=DEBUG
+
+# Same command, just different log level

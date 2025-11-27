@@ -1,33 +1,85 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# API INGESTOR - PRODUCTION
+# =============================================
+# Google Search Console API data ingestion
+# Based on shared base image with ingestor dependencies
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+ARG BASE_IMAGE=gsc-base:latest
+ARG PYTHON_VERSION=3.11
 
-# Set working directory
-WORKDIR /app
+# =============================================
+# STAGE 1: Builder - Install Service Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Copy requirements
-COPY requirements.txt /tmp/requirements.txt
+# Switch to root for installations
+USER root
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install ingestor-specific dependencies with cache mount
+COPY requirements/ /tmp/requirements/
 
-# Copy API ingestor code
-COPY ingestors/api/ /app/ingestors/api/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/ingestors.txt
+
+# Verify Google API installation
+RUN python -c "from googleapiclient.discovery import build; print('Google API client verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+# Metadata
+LABEL service="api_ingestor"
+LABEL description="Google Search Console API Ingestor"
+
+# Switch to root for setup
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code (minimal, only what's needed)
+COPY --chown=appuser:appuser ingestors/api/ /app/ingestors/api/
+COPY --chown=appuser:appuser ingestors/__init__.py /app/ingestors/__init__.py
 
 # Create necessary directories
-RUN mkdir -p /report /logs
+RUN mkdir -p /report /logs && \
+    chown -R appuser:appuser /report /logs
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gsc_sa.json
+# Switch to non-root user
+USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Environment variables
+ENV PYTHONPATH=/app \
+    GOOGLE_APPLICATION_CREDENTIALS=/secrets/gsc_sa.json \
+    SERVICE_NAME=api_ingestor
+
+# Health check - verify imports and DB connectivity placeholder
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import sys; from ingestors.api import gsc_api_ingestor; sys.exit(0)" || exit 1
+
+# Default command
+CMD ["python", "/app/ingestors/api/gsc_api_ingestor.py"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER root
+
+# Install watchdog for hot reload
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir watchdog[watchmedo]>=3.0.0
+
+USER appuser
+
+# Development: faster healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
     CMD python -c "import sys; sys.exit(0)"
 
-# Default command (overridden by compose)
-CMD ["python", "/app/ingestors/api/gsc_api_ingestor.py"]
+# Use watchmedo for auto-reload on code changes
+CMD ["watchmedo", "auto-restart", "--directory=/app/ingestors/api", "--pattern=*.py", "--recursive", "--", "python", "/app/ingestors/api/gsc_api_ingestor.py"]

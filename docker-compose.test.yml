@@ -1,0 +1,383 @@
+version: '3.8'
+
+# ============================================
+# GSC Warehouse - Test Environment
+# ============================================
+# Isolated test services for running automated tests
+#
+# Quick Start:
+#   docker-compose -f docker-compose.test.yml up -d
+#   pytest tests/
+#   docker-compose -f docker-compose.test.yml down -v
+#
+# Features:
+#   - Isolated network (test_network)
+#   - Unique container names (test_ prefix)
+#   - Health checks for all services
+#   - Automatic cleanup via volumes
+#   - Optimized for CI/CD pipelines
+#
+# Services:
+#   - PostgreSQL 15 with pgvector
+#   - Redis 7
+#   - Grafana (for E2E UI tests)
+#   - Prometheus (for E2E UI tests)
+#
+# Environment Variables:
+#   TEST_POSTGRES_DB: Database name (default: gsc_test)
+#   TEST_POSTGRES_USER: Database user (default: test_user)
+#   TEST_POSTGRES_PASSWORD: Database password (default: test_pass)
+#   TEST_REDIS_PORT: Redis port (default: 6380)
+#   TEST_POSTGRES_PORT: PostgreSQL port (default: 5433)
+#   TEST_GRAFANA_PORT: Grafana port (default: 3001)
+#   TEST_PROMETHEUS_PORT: Prometheus port (default: 9091)
+
+services:
+  # ==========================================
+  # TEST DATABASE - PostgreSQL 15
+  # ==========================================
+  test_warehouse:
+    image: pgvector/pgvector:pg15
+    container_name: test_gsc_warehouse
+    environment:
+      POSTGRES_DB: ${TEST_POSTGRES_DB:-gsc_test}
+      POSTGRES_USER: ${TEST_POSTGRES_USER:-test_user}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-test_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Performance tuning for tests
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_WORK_MEM: 32MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 64MB
+      POSTGRES_MAX_CONNECTIONS: 100
+      # Enable detailed logging for debugging tests
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - test_pgdata:/var/lib/postgresql/data
+      - ./compose/init-db:/docker-entrypoint-initdb.d:ro
+      - ./sql:/sql:ro
+      - ./logs/test:/logs
+    ports:
+      - "${TEST_POSTGRES_PORT:-5433}:5432"
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_POSTGRES_USER:-test_user} -d ${TEST_POSTGRES_DB:-gsc_test}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    tmpfs:
+      - /tmp:size=128M
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.track=all"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_duration=on"
+      - "-c"
+      - "log_min_duration_statement=100"
+
+  # ==========================================
+  # TEST CACHE - Redis 7
+  # ==========================================
+  test_redis:
+    image: redis:7-alpine
+    container_name: test_gsc_redis
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --loglevel verbose
+    ports:
+      - "${TEST_REDIS_PORT:-6380}:6379"
+    volumes:
+      - test_redis_data:/data
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # TEST PROMETHEUS - Metrics
+  # ==========================================
+  test_prometheus:
+    image: prom/prometheus:latest
+    container_name: test_gsc_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=1h'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./tests/fixtures/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - test_prometheus_data:/prometheus
+    ports:
+      - "${TEST_PROMETHEUS_PORT:-9091}:9090"
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # TEST GRAFANA - Dashboards
+  # ==========================================
+  test_grafana:
+    image: grafana/grafana:latest
+    container_name: test_gsc_grafana
+    environment:
+      # Admin credentials
+      GF_SECURITY_ADMIN_USER: ${TEST_GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${TEST_GRAFANA_PASSWORD:-admin}
+      # Disable authentication for tests
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      # Performance settings
+      GF_DATABASE_WAL: "false"
+      GF_LOG_LEVEL: info
+      # Test-specific settings
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_ORG_CREATE: "false"
+      GF_ALERTING_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "false"
+      # Disable analytics
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - test_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${TEST_GRAFANA_PORT:-3001}:3000"
+    networks:
+      - test_network
+    depends_on:
+      test_prometheus:
+        condition: service_healthy
+      test_warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # TEST METRICS EXPORTER
+  # ==========================================
+  test_metrics_exporter:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.metrics
+    container_name: test_gsc_metrics_exporter
+    environment:
+      WAREHOUSE_DSN: postgresql://${TEST_POSTGRES_USER:-test_user}:${TEST_POSTGRES_PASSWORD:-test_pass}@test_warehouse:5432/${TEST_POSTGRES_DB:-gsc_test}
+      METRICS_PORT: 8002
+      EXPORTER_PORT: 8002
+      LOG_LEVEL: INFO
+    volumes:
+      - ./logs/test:/logs:ro
+    ports:
+      - "${TEST_METRICS_PORT:-8003}:8002"
+    networks:
+      - test_network
+    depends_on:
+      test_warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8002/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+
+  # ==========================================
+  # TEST POSTGRES EXPORTER
+  # ==========================================
+  test_postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: test_gsc_postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${TEST_POSTGRES_USER:-test_user}:${TEST_POSTGRES_PASSWORD:-test_pass}@test_warehouse:5432/${TEST_POSTGRES_DB:-gsc_test}?sslmode=disable"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+    ports:
+      - "${TEST_PG_EXPORTER_PORT:-9188}:9187"
+    networks:
+      - test_network
+    depends_on:
+      test_warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # TEST REDIS EXPORTER
+  # ==========================================
+  test_redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: test_gsc_redis_exporter
+    environment:
+      REDIS_ADDR: "test_redis:6379"
+      REDIS_EXPORTER_DEBUG: "false"
+    ports:
+      - "${TEST_REDIS_EXPORTER_PORT:-9122}:9121"
+    networks:
+      - test_network
+    depends_on:
+      test_redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9121/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.1'
+
+# ==========================================
+# NETWORKS
+# ==========================================
+networks:
+  test_network:
+    name: test_network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/16
+          gateway: 172.26.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br_test_gsc
+
+# ==========================================
+# VOLUMES
+# ==========================================
+volumes:
+  test_pgdata:
+    name: test_gsc_pgdata
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${TEST_DATA_DIR:-./test-data}/postgres
+  test_redis_data:
+    name: test_gsc_redis_data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${TEST_DATA_DIR:-./test-data}/redis
+  test_prometheus_data:
+    name: test_gsc_prometheus_data
+    driver: local
+  test_grafana_data:
+    name: test_gsc_grafana_data
+    driver: local

@@ -1,0 +1,170 @@
+# syntax=docker/dockerfile:1.4
+# =============================================
+# CELERY WORKER - PRODUCTION
+# =============================================
+# Async task processing with full ML/AI stack
+# Handles content analysis, embeddings, LLM tasks
+#
+# Build options:
+#   CPU (default, ~3GB):    docker build -f Dockerfile.celery .
+#   GPU (CUDA 12.x, ~6GB):  docker build --build-arg USE_GPU=true -f Dockerfile.celery .
+
+ARG BASE_IMAGE=gsc-base:latest
+
+# =============================================
+# STAGE 1: Builder - Install Full ML Stack
+# =============================================
+FROM ${BASE_IMAGE} AS builder
+
+# GPU/CPU selection - set to "true" to use CUDA-enabled PyTorch
+ARG USE_GPU=false
+ARG CUDA_VERSION=12.4
+
+USER root
+
+# Install build dependencies for heavy packages
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        gfortran \
+        libopenblas-dev \
+        liblapack-dev \
+        libxml2-dev \
+        libxslt1-dev \
+        libffi-dev \
+    && apt-get clean
+
+# Copy requirements
+COPY requirements/ /tmp/requirements/
+
+# Install PyTorch first (CPU or GPU based on build arg)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$USE_GPU" = "true" ]; then \
+        echo "Installing PyTorch with CUDA ${CUDA_VERSION} support (GPU)..." && \
+        CUDA_TAG=$(echo $CUDA_VERSION | tr -d '.') && \
+        pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_TAG}; \
+    else \
+        echo "Installing PyTorch CPU-only (smaller image)..." && \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu; \
+    fi
+
+# Install Celery dependencies (includes ML, LangChain, etc.)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/celery.txt
+
+# Pre-download ML models and spaCy language model
+RUN python -c "from sentence_transformers import SentenceTransformer; \
+    SentenceTransformer('all-MiniLM-L6-v2')" && \
+    python -m spacy download en_core_web_sm
+
+# Install Playwright browsers (large, ~500MB)
+RUN playwright install --with-deps chromium
+
+# Verify installations
+RUN python -c "import celery; import langchain; import ollama; print('Celery stack verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="celery_worker"
+LABEL description="Celery Async Task Worker with ML/AI"
+
+USER root
+
+# Install runtime libraries
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libopenblas0 \
+        libgomp1 \
+        libxml2 \
+        libxslt1.1 \
+        libffi7 \
+        # Playwright runtime dependencies
+        libnss3 \
+        libnspr4 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libcups2 \
+        libdrm2 \
+        libdbus-1-3 \
+        libxkbcommon0 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libgbm1 \
+        libasound2 \
+    && apt-get clean
+
+# Copy installed packages from builder (includes Playwright browsers)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
+COPY --from=builder /root/.cache/torch /home/appuser/.cache/torch
+
+# Copy application code
+COPY --chown=appuser:appuser insights_core/ /app/insights_core/
+COPY --chown=appuser:appuser services/ /app/services/
+COPY --chown=appuser:appuser agents/ /app/agents/
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs /home/appuser/.cache
+
+USER appuser
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=celery_worker \
+    C_FORCE_ROOT=false \
+    CELERY_BROKER_URL=redis://redis:6379/0 \
+    CELERY_RESULT_BACKEND=redis://redis:6379/1 \
+    PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+
+# Health check - Celery ping
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD celery -A services.tasks inspect ping -d celery@$HOSTNAME || exit 1
+
+# Default command (production: 4 workers, prefetch multiplier 1 for long tasks)
+CMD ["celery", "-A", "services.tasks", "worker", \
+     "--loglevel=info", \
+     "--concurrency=4", \
+     "--prefetch-multiplier=1", \
+     "--max-tasks-per-child=1000", \
+     "--time-limit=3600", \
+     "--soft-time-limit=3300"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER root
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir watchdog[watchmedo]>=3.0.0
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=2 \
+    CMD celery -A services.tasks inspect ping -d celery@$HOSTNAME || exit 1
+
+# Development: Use watchmedo for auto-reload, reduced concurrency
+CMD ["watchmedo", "auto-restart", \
+     "--directory=/app/services", \
+     "--directory=/app/insights_core", \
+     "--pattern=*.py", \
+     "--recursive", \
+     "--", \
+     "celery", "-A", "services.tasks", "worker", \
+     "--loglevel=debug", \
+     "--concurrency=2"]

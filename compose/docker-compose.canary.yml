@@ -1,0 +1,86 @@
+# Docker Compose configuration for Canary Checks
+# Usage: docker-compose -f docker-compose.yml -f compose/docker-compose.canary.yml up canary-checks
+
+version: '3.8'
+
+services:
+  canary-checks:
+    build:
+      context: ..
+      dockerfile: compose/dockerfiles/Dockerfile.base
+    container_name: seo-canary-checks
+    command: python scripts/canary_checks.py --environment production --verbose
+    environment:
+      # Database connection
+      - WAREHOUSE_DSN=${WAREHOUSE_DSN}
+
+      # API endpoints
+      - INSIGHTS_API_URL=http://insights-api:8001
+
+      # Scheduler metrics
+      - SCHEDULER_METRICS_FILE=/logs/scheduler_metrics.json
+
+      # Environment
+      - ENVIRONMENT=production
+    volumes:
+      # Mount scripts
+      - ../scripts:/app/scripts:ro
+
+      # Mount logs for scheduler metrics
+      - ./logs:/logs:ro
+
+      # Mount output directory for reports
+      - ./reports:/reports
+
+      # Mount insights core for repository access
+      - ../insights_core:/app/insights_core:ro
+    depends_on:
+      - warehouse
+      - insights-api
+    networks:
+      - seo-network
+    restart: "no"  # One-shot execution
+    profiles:
+      - canary
+      - testing
+
+  # Scheduled canary checks (runs every 6 hours)
+  canary-checks-scheduled:
+    extends:
+      service: canary-checks
+    container_name: seo-canary-checks-scheduled
+    command: >
+      sh -c "
+        while true; do
+          echo 'Running scheduled canary checks...'
+          python scripts/canary_checks.py --environment production --output /reports/canary-report-\$(date +%Y%m%d_%H%M%S).json
+          echo 'Next run in 6 hours...'
+          sleep 21600
+        done
+      "
+    restart: unless-stopped
+    profiles:
+      - canary-scheduled
+
+  # Canary checks for staging environment
+  canary-checks-staging:
+    extends:
+      service: canary-checks
+    container_name: seo-canary-checks-staging
+    command: python scripts/canary_checks.py --environment staging --verbose
+    environment:
+      - WAREHOUSE_DSN=${WAREHOUSE_DSN_STAGING:-${WAREHOUSE_DSN}}
+      - INSIGHTS_API_URL=${INSIGHTS_API_URL_STAGING:-http://insights-api:8001}
+      - ENVIRONMENT=staging
+    profiles:
+      - canary-staging
+
+networks:
+  seo-network:
+    external: true
+
+volumes:
+  logs:
+    driver: local
+  reports:
+    driver: local

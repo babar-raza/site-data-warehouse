@@ -1,24 +1,132 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# INSIGHTS ENGINE - PRODUCTION
+# =============================================
+# ML/AI-powered insights generation
+# Heavy ML dependencies (Prophet, scikit-learn, transformers)
+#
+# Build options:
+#   CPU (default, ~2.5GB):   docker build -f Dockerfile.insights_engine .
+#   GPU (CUDA 12.x, ~5GB):   docker build --build-arg USE_GPU=true -f Dockerfile.insights_engine .
+#   GPU (CUDA 11.8, ~5GB):   docker build --build-arg USE_GPU=true --build-arg CUDA_VERSION=11.8 -f Dockerfile.insights_engine .
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG BASE_IMAGE=gsc-base:latest
 
-# Set working directory
-WORKDIR /app
+# =============================================
+# STAGE 1: Builder - Install ML Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
+
+# GPU/CPU selection - set to "true" to use CUDA-enabled PyTorch
+ARG USE_GPU=false
+ARG CUDA_VERSION=12.4
+
+USER root
+
+# Install build dependencies for ML packages
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        gfortran \
+        libopenblas-dev \
+        liblapack-dev \
+    && apt-get clean
 
 # Copy requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements/ /tmp/requirements/
 
-# Copy insights core
-COPY insights_core/ /app/insights_core/
+# Install PyTorch first (CPU or GPU based on build arg)
+# This ensures sentence-transformers uses the correct version
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$USE_GPU" = "true" ]; then \
+        echo "Installing PyTorch with CUDA ${CUDA_VERSION} support (GPU)..." && \
+        CUDA_TAG=$(echo $CUDA_VERSION | tr -d '.') && \
+        pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_TAG}; \
+    else \
+        echo "Installing PyTorch CPU-only (smaller image)..." && \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu; \
+    fi
+
+# Install remaining insights dependencies
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/insights.txt
+
+# Pre-download sentence-transformer model to bake into image
+RUN python -c "from sentence_transformers import SentenceTransformer; \
+    model = SentenceTransformer('all-MiniLM-L6-v2'); \
+    print('Sentence transformer model cached')"
+
+# Verify ML packages and show PyTorch device info
+RUN python -c "import torch; import prophet; import sklearn; from sentence_transformers import SentenceTransformer; \
+    print(f'PyTorch version: {torch.__version__}'); \
+    print(f'CUDA available: {torch.cuda.is_available()}'); \
+    print('ML packages verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="insights_engine"
+LABEL description="ML-Powered Insights Generation Engine"
+
+USER root
+
+# Install runtime libraries for ML
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libopenblas0 \
+        libgomp1 \
+    && apt-get clean
+
+# Copy installed packages from builder (includes ML models)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser insights_core/ /app/insights_core/
+
+# Create necessary directories (torch will create cache on first use)
+RUN mkdir -p /logs /home/appuser/.cache/torch /home/appuser/.cache/transformers /home/appuser/.cache/huggingface && \
+    chown -R appuser:appuser /logs /home/appuser/.cache
+
+USER appuser
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=insights_engine \
+    TRANSFORMERS_CACHE=/home/appuser/.cache/transformers \
+    HF_HOME=/home/appuser/.cache/huggingface
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "from insights_core.config import InsightsConfig; print('healthy')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "from insights_core.config import InsightsConfig; print('healthy')" || exit 1
 
-# Default command (for one-shot execution)
-CMD ["python", "/app/insights_core/cli.py", "refresh-insights"]
+# Default command (one-shot execution)
+CMD ["python", "-m", "insights_core.cli", "refresh-insights"]
+
+# =============================================
+# STAGE 3: Development - Interactive
+# =============================================
+FROM runtime AS development
+
+USER root
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir \
+        jupyter>=1.0.0 \
+        ipython>=8.14.0
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD python -c "import sys; sys.exit(0)"
+
+CMD ["python", "-m", "insights_core.cli", "refresh-insights"]

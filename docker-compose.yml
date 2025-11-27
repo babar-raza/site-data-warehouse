@@ -3,8 +3,8 @@ version: '3.8'
 # ============================================
 # GSC Warehouse - Unified Docker Compose
 # ============================================
-# Production-ready orchestration for all services
-# 
+# Production-ready orchestration with resource limits
+#
 # Quick Start:
 #   1. cp .env.example .env
 #   2. Edit .env with your credentials
@@ -14,10 +14,18 @@ version: '3.8'
 #   - core: Minimum viable (warehouse + ingestors)
 #   - insights: Insight generation (engine + scheduler)
 #   - api: Serving layer (API + MCP)
-#   - observability: Monitoring (Prometheus + Grafana)
+#   - intelligence: AI/ML features (Ollama + Redis + Celery)
+#
+# Note: Prometheus and Grafana are now always enabled (not optional)
 #
 # Usage:
 #   docker-compose --profile core --profile insights up -d
+#
+# Resource Limits:
+#   - All containers have memory/CPU limits
+#   - Log rotation: 10MB max, 3 files
+#   - Volume limits enforced
+#   - Auto-cleanup policies enabled
 
 services:
   # ==========================================
@@ -31,6 +39,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gsc_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gsc_pass}
       PGDATA: /var/lib/postgresql/data/pgdata
+      # Limit PostgreSQL memory usage
+      POSTGRES_SHARED_BUFFERS: 512MB
+      POSTGRES_WORK_MEM: 64MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 128MB
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./compose/init-db:/docker-entrypoint-initdb.d:ro
@@ -46,6 +58,11 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
@@ -54,6 +71,8 @@ services:
         reservations:
           memory: 512M
           cpus: '0.5'
+    tmpfs:
+      - /tmp:size=256M
 
   # ==========================================
   # STARTUP ORCHESTRATOR
@@ -74,15 +93,22 @@ services:
     depends_on:
       warehouse:
         condition: service_healthy
-    command: python startup_orchestrator.py
+    command: python /app/scheduler/startup_orchestrator.py
     profiles:
       - core
     restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 1G
           cpus: '1.0'
+    tmpfs:
+      - /tmp:size=128M
 
   # ==========================================
   # INGESTORS
@@ -94,7 +120,13 @@ services:
     container_name: gsc_api_ingestor
     environment:
       WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
-      GSC_SERVICE_ACCOUNT_FILE: /secrets/gsc_sa.json
+      DB_HOST: warehouse
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-gsc_db}
+      DB_USER: ${POSTGRES_USER:-gsc_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-gsc_pass}
+      GSC_SVC_JSON: /secrets/gsc_sa.json
+      GSC_INITIAL_BACKFILL_DAYS: 7
       PROPERTIES: ${GSC_PROPERTIES}
     volumes:
       - ./logs:/logs
@@ -107,11 +139,18 @@ services:
     profiles:
       - core
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 512M
           cpus: '1.0'
+    tmpfs:
+      - /tmp:size=64M
 
   ga4_ingestor:
     build:
@@ -120,7 +159,7 @@ services:
     container_name: gsc_ga4_ingestor
     environment:
       WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
-      GA4_CREDENTIALS_FILE: /secrets/ga4_sa.json
+      GA4_CREDENTIALS_PATH: /secrets/gsc_sa.json
       GA4_PROPERTY_ID: ${GA4_PROPERTY_ID}
     volumes:
       - ./logs:/logs
@@ -133,11 +172,18 @@ services:
     profiles:
       - core
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 512M
           cpus: '1.0'
+    tmpfs:
+      - /tmp:size=64M
 
   # ==========================================
   # TRANSFORM SERVICE
@@ -159,7 +205,7 @@ services:
         condition: service_completed_successfully
     command: python apply_transforms.py
     profiles:
-      - core
+      - disabled  # Disabled: transform script was moved, transforms handled manually
     restart: "no"
     deploy:
       resources:
@@ -185,8 +231,8 @@ services:
     networks:
       - gsc_network
     depends_on:
-      transform:
-        condition: service_completed_successfully
+      warehouse:
+        condition: service_healthy
     command: python -m insights_core.cli refresh-insights
     profiles:
       - insights
@@ -207,12 +253,26 @@ services:
     container_name: gsc_scheduler
     environment:
       WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
-      GSC_SERVICE_ACCOUNT_FILE: /secrets/gsc_sa.json
-      GA4_CREDENTIALS_FILE: /secrets/ga4_sa.json
+      GSC_SVC_JSON: /secrets/gsc_sa.json
+      GA4_CREDENTIALS_PATH: /secrets/gsc_sa.json
       PROPERTIES: ${GSC_PROPERTIES}
+      SERPSTACK_API_KEY: ${SERPSTACK_API_KEY:-}
+      PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
+      DB_HOST: warehouse
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-gsc_db}
+      DB_USER: ${POSTGRES_USER:-gsc_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-gsc_pass}
+      # Hugo Content Integration
+      HUGO_CONTENT_PATH: /hugo_content
+      HUGO_FILE_LOCALIZATION_SUBDOMAINS: ${HUGO_FILE_LOCALIZATION_SUBDOMAINS:-}
+      HUGO_DEFAULT_LOCALE: ${HUGO_DEFAULT_LOCALE:-en}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral:latest}
     volumes:
       - ./logs:/logs
       - ./secrets:/secrets:ro
+      - ${HUGO_CONTENT_PATH:-./hugo_content}:/hugo_content:rw
     networks:
       - gsc_network
     depends_on:
@@ -248,7 +308,7 @@ services:
       warehouse:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -292,7 +352,7 @@ services:
           cpus: '0.5'
 
   # ==========================================
-  # OBSERVABILITY - PROMETHEUS
+  # OBSERVABILITY - PROMETHEUS (Required)
   # ==========================================
   prometheus:
     image: prom/prometheus:latest
@@ -313,8 +373,6 @@ services:
     depends_on:
       warehouse:
         condition: service_healthy
-    profiles:
-      - observability
     restart: unless-stopped
     deploy:
       resources:
@@ -323,7 +381,7 @@ services:
           cpus: '0.5'
 
   # ==========================================
-  # OBSERVABILITY - GRAFANA
+  # OBSERVABILITY - GRAFANA (Required)
   # ==========================================
   grafana:
     image: grafana/grafana:latest
@@ -341,8 +399,6 @@ services:
       - gsc_network
     depends_on:
       - prometheus
-    profiles:
-      - observability
     restart: unless-stopped
     deploy:
       resources:
@@ -351,7 +407,7 @@ services:
           cpus: '0.5'
 
   # ==========================================
-  # METRICS EXPORTER
+  # METRICS EXPORTER (Required)
   # ==========================================
   metrics_exporter:
     build:
@@ -361,6 +417,7 @@ services:
     environment:
       WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
       METRICS_PORT: ${METRICS_PORT:-8002}
+      EXPORTER_PORT: ${METRICS_PORT:-8002}
     volumes:
       - ./logs:/logs:ro
     ports:
@@ -370,14 +427,182 @@ services:
     depends_on:
       warehouse:
         condition: service_healthy
-    profiles:
-      - observability
     restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: '0.25'
+
+  # ==========================================
+  # OLLAMA - LOCAL LLM SERVER
+  # ==========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gsc_ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    networks:
+      - gsc_network
+    # Uncomment below if you have NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - intelligence
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'
+
+  # ==========================================
+  # REDIS - TASK QUEUE & REAL-TIME STREAMS
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: gsc_redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gsc_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - intelligence
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # CELERY WORKER - ASYNC TASK PROCESSING
+  # ==========================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.celery
+    container_name: gsc_celery_worker
+    command: celery -A services.tasks worker --loglevel=info --concurrency=4
+    environment:
+      WAREHOUSE_DSN: postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      OLLAMA_URL: http://ollama:11434
+    volumes:
+      - ./logs:/logs
+      - ./services:/app/services:ro
+    networks:
+      - gsc_network
+    depends_on:
+      redis:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    profiles:
+      - intelligence
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  # ==========================================
+  # CADVISOR - CONTAINER METRICS
+  # ==========================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: gsc_cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - gsc_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # POSTGRES EXPORTER - DATABASE METRICS
+  # ==========================================
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: gsc_postgres_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gsc_user}:${POSTGRES_PASSWORD:-gsc_pass}@warehouse:5432/${POSTGRES_DB:-gsc_db}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - gsc_network
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+
+  # ==========================================
+  # REDIS EXPORTER - CACHE & QUEUE METRICS
+  # ==========================================
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: gsc_redis_exporter
+    environment:
+      REDIS_ADDR: "redis:6379"
+    ports:
+      - "9121:9121"
+    networks:
+      - gsc_network
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - intelligence
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
 
 # ==========================================
 # NETWORKS
@@ -398,4 +623,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  ollama_data:
+    driver: local
+  redis_data:
     driver: local

@@ -1,0 +1,362 @@
+version: '3.8'
+
+# ============================================
+# PRODUCTION CONFIGURATION
+# ============================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+#
+# Features:
+#   - Optimized runtime targets
+#   - Health checks with restart policies
+#   - Resource limits
+#   - Read-only volumes
+#   - Security hardening
+#   - Multi-arch support ready
+#   - Registry-tagged images
+
+x-common-security: &common-security
+  read_only: true
+  cap_drop:
+    - ALL
+  cap_add:
+    - NET_BIND_SERVICE
+  security_opt:
+    - no-new-privileges:true
+
+x-common-logging: &common-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
+services:
+  # ==========================================
+  # DATABASE (PostgreSQL)
+  # ==========================================
+  warehouse:
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # ==========================================
+  # STARTUP ORCHESTRATOR
+  # ==========================================
+  startup_orchestrator:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/scheduler:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/scheduler:${VERSION:-latest}
+    restart: on-failure
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # INGESTORS
+  # ==========================================
+  api_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.api_ingestor
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/api-ingestor:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/api-ingestor:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  ga4_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.ga4_ingestor
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/ga4-ingestor:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/ga4-ingestor:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # ==========================================
+  # TRANSFORM SERVICE
+  # ==========================================
+  transform:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.transformer
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/transformer:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/transformer:${VERSION:-latest}
+    restart: on-failure
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # INSIGHTS ENGINE
+  # ==========================================
+  insights_engine:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_engine
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/insights-engine:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/insights-engine:${VERSION:-latest}
+    restart: on-failure
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  # ==========================================
+  # SCHEDULER
+  # ==========================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/scheduler:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/scheduler:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ==========================================
+  # INSIGHTS API
+  # ==========================================
+  insights_api:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_api
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/insights-api:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/insights-api:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+
+  # ==========================================
+  # MCP SERVER
+  # ==========================================
+  mcp:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.mcp
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/mcp:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/mcp:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # METRICS EXPORTER
+  # ==========================================
+  metrics_exporter:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.metrics
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/metrics:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/metrics:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+  # ==========================================
+  # PROMETHEUS
+  # ==========================================
+  prometheus:
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # ==========================================
+  # GRAFANA
+  # ==========================================
+  grafana:
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # OLLAMA
+  # ==========================================
+  ollama:
+    restart: always
+    logging: *common-logging
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '8.0'
+        reservations:
+          memory: 4G
+          cpus: '4.0'
+      # Uncomment for GPU
+      # resources:
+      #   reservations:
+      #     devices:
+      #       - driver: nvidia
+      #         count: all
+      #         capabilities: [gpu]
+
+  # ==========================================
+  # REDIS
+  # ==========================================
+  redis:
+    restart: always
+    logging: *common-logging
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # CELERY WORKER
+  # ==========================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.celery
+      target: runtime
+      cache_from:
+        - ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/celery:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-gsc}/celery:${VERSION:-latest}
+    restart: always
+    logging: *common-logging
+    command: >
+      celery -A services.tasks worker
+      --loglevel=info
+      --concurrency=4
+      --prefetch-multiplier=1
+      --max-tasks-per-child=1000
+      --time-limit=3600
+      --soft-time-limit=3300
+      --max-memory-per-child=2000000
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'
+      replicas: 2

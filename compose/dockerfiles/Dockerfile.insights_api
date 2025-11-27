@@ -1,35 +1,99 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# INSIGHTS API - PRODUCTION
+# =============================================
+# FastAPI REST API for insights data
+# Production-ready with Gunicorn + Uvicorn workers
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG BASE_IMAGE=gsc-base:latest
 
-# Set working directory
-WORKDIR /app
+# =============================================
+# STAGE 1: Builder - Install API Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Copy requirements
-COPY requirements.txt /tmp/requirements.txt
+USER root
 
-# Install Python dependencies including FastAPI
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir fastapi uvicorn[standard] pydantic
+# Install API dependencies with cache mount
+COPY requirements/ /tmp/requirements/
 
-# Create non-root user
-RUN useradd -m -u 1000 apiuser && \
-    chown -R apiuser:apiuser /app
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/api.txt
 
-# Switch to non-root user
-USER apiuser
+# Verify FastAPI installation
+RUN python -c "import fastapi; import uvicorn; print('FastAPI stack verified')"
+
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="insights_api"
+LABEL description="FastAPI REST API for Insights"
+
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser insights_api/ /app/insights_api/
+COPY --chown=appuser:appuser insights_core/ /app/insights_core/
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=insights_api \
+    API_PORT=8000 \
+    WORKERS=4
 
-# Default command
-CMD ["uvicorn", "insights_api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check via API endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Production: Use Gunicorn with Uvicorn workers
+CMD ["gunicorn", "insights_api.insights_api:app", \
+     "--workers", "4", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8000", \
+     "--access-logfile", "/logs/api_access.log", \
+     "--error-logfile", "/logs/api_error.log", \
+     "--log-level", "info", \
+     "--timeout", "120", \
+     "--graceful-timeout", "30", \
+     "--keep-alive", "5"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER root
+
+# No additional packages needed, uvicorn has --reload
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG \
+    WORKERS=1
+
+# Development: faster healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Development: Use uvicorn directly with hot reload
+CMD ["uvicorn", "insights_api.insights_api:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--reload", \
+     "--reload-dir", "/app/insights_api", \
+     "--log-level", "debug"]

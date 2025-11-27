@@ -1,0 +1,169 @@
+# syntax=docker/dockerfile:1.4
+# =============================================
+# BASE IMAGE - ENTERPRISE GRADE
+# =============================================
+# Shared base for all Python services
+# Multi-stage build with BuildKit optimizations
+#
+# Build: docker build --target base-runtime -t gsc-base:latest -f compose/dockerfiles/Dockerfile.base .
+#
+# Stages:
+#   - base-builder: Build environment with compilers
+#   - base-runtime: Minimal runtime with essential packages
+#
+# Security: Non-root user, minimal attack surface
+# Performance: BuildKit cache mounts, layer optimization
+
+ARG PYTHON_VERSION=3.11
+ARG DEBIAN_VERSION=slim
+
+# =============================================
+# STAGE 1: Builder Environment
+# =============================================
+FROM python:${PYTHON_VERSION}-${DEBIAN_VERSION} AS base-builder
+
+# Build arguments
+ARG BUILDKIT_INLINE_CACHE=1
+ARG PIP_NO_CACHE_DIR=1
+ARG PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Set working directory
+WORKDIR /app
+
+# Install system build dependencies with cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        make \
+        libpq-dev \
+        postgresql-client \
+        curl \
+        ca-certificates \
+        git \
+    && apt-get clean
+
+# Upgrade pip, setuptools, wheel
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade \
+        pip>=23.0 \
+        setuptools>=68.0 \
+        wheel>=0.41.0
+
+# Copy and install base requirements with cache mount
+COPY requirements/base.txt /tmp/requirements/base.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/base.txt
+
+# Verify critical installations
+RUN python -c "import psycopg2; import sqlalchemy; import pandas; print('Base packages verified')"
+
+# =============================================
+# STAGE 2: Runtime Environment (Production)
+# =============================================
+FROM python:${PYTHON_VERSION}-${DEBIAN_VERSION} AS base-runtime
+
+# Metadata
+LABEL maintainer="GSC Warehouse Team"
+LABEL org.opencontainers.image.source="https://github.com/your-org/site-data-warehouse"
+LABEL org.opencontainers.image.description="GSC Warehouse Base Image - Production Runtime"
+LABEL org.opencontainers.image.version="1.0.0"
+
+# Install runtime system dependencies (minimal, no compilers)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libpq5 \
+        postgresql-client \
+        curl \
+        ca-certificates \
+        tzdata \
+        tini \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python packages from builder
+COPY --from=base-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=base-builder /usr/local/bin /usr/local/bin
+
+# Create non-root user for security
+RUN groupadd -r appuser --gid=1000 && \
+    useradd -r -g appuser --uid=1000 --home-dir=/app --shell=/bin/bash appuser && \
+    chown -R appuser:appuser /app
+
+# Create directories with proper permissions
+RUN mkdir -p /logs /tmp/app && \
+    chown -R appuser:appuser /logs /tmp/app
+
+# Environment variables (production defaults)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=UTC \
+    TMPDIR=/tmp/app
+
+# Security: Run as non-root
+USER appuser
+
+# Health check placeholder (override in service Dockerfiles)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Use tini as init system for proper signal handling
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Default command (override in service Dockerfiles)
+CMD ["python", "--version"]
+
+# =============================================
+# STAGE 3: Development Environment (Optional)
+# =============================================
+FROM base-runtime AS base-dev
+
+# Switch to root for installations
+USER root
+
+# Install development tools
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        vim \
+        less \
+        htop \
+        net-tools \
+        iputils-ping \
+    && apt-get clean
+
+# Install dev Python packages
+COPY requirements/dev.txt /tmp/requirements/dev.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/dev.txt
+
+# Switch back to non-root
+USER appuser
+
+# Development environment variables
+ENV PYTHONDONTWRITEBYTECODE=0 \
+    PYTHONBREAKPOINT=ipdb.set_trace
+
+# Override healthcheck for faster development feedback
+HEALTHCHECK --interval=10s --timeout=5s --start-period=2s --retries=2 \
+    CMD python -c "import sys; sys.exit(0)"

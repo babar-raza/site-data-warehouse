@@ -1,35 +1,84 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# =============================================
+# MCP SERVER - PRODUCTION
+# =============================================
+# Model Context Protocol server
+# FastAPI-based, similar to insights_api
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ARG BASE_IMAGE=gsc-base:latest
 
-# Set working directory
-WORKDIR /app
+# =============================================
+# STAGE 1: Builder - Install API Dependencies
+# =============================================
+FROM ${BASE_IMAGE} AS builder
 
-# Copy requirements
-COPY requirements.txt /tmp/requirements.txt
+USER root
 
-# Install Python dependencies including FastAPI
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir fastapi uvicorn[standard] pydantic
+# Install API dependencies with cache mount
+COPY requirements/ /tmp/requirements/
 
-# Create non-root user
-RUN useradd -m -u 1000 mcpuser && \
-    chown -R mcpuser:mcpuser /app
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/requirements/api.txt
 
-# Switch to non-root user
-USER mcpuser
+# =============================================
+# STAGE 2: Runtime - Production Image
+# =============================================
+FROM ${BASE_IMAGE} AS runtime
+
+LABEL service="mcp"
+LABEL description="Model Context Protocol Server"
+
+USER root
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser mcp/ /app/mcp/
+COPY --chown=appuser:appuser insights_core/ /app/insights_core/
+
+# Create necessary directories
+RUN mkdir -p /logs && \
+    chown -R appuser:appuser /logs
+
+USER appuser
 
 # Expose port
 EXPOSE 8001
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Environment variables
+ENV PYTHONPATH=/app \
+    SERVICE_NAME=mcp \
+    MCP_PORT=8001
 
-# Default command
-CMD ["uvicorn", "mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Production: Use Gunicorn
+CMD ["gunicorn", "mcp.mcp_server:app", \
+     "--workers", "2", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8001", \
+     "--access-logfile", "/logs/mcp_access.log", \
+     "--error-logfile", "/logs/mcp_error.log", \
+     "--log-level", "info"]
+
+# =============================================
+# STAGE 3: Development - Hot Reload
+# =============================================
+FROM runtime AS development
+
+USER appuser
+
+ENV LOG_LEVEL=DEBUG
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+CMD ["uvicorn", "mcp.mcp_server:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8001", \
+     "--reload", \
+     "--log-level", "debug"]

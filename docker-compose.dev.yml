@@ -1,0 +1,238 @@
+version: '3.8'
+
+# ============================================
+# DEVELOPMENT OVERRIDES
+# ============================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Features:
+#   - Hot reload for all services
+#   - Volume mounts for code
+#   - BuildKit cache mounts
+#   - Development targets in Dockerfiles
+#   - Faster healthchecks
+#   - Debug logging
+#   - Local pip cache server
+
+services:
+  # ==========================================
+  # STARTUP ORCHESTRATOR
+  # ==========================================
+  startup_orchestrator:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+      target: development
+      cache_from:
+        - gsc-scheduler:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./scheduler:/app/scheduler:ro
+      - ./ingestors:/app/ingestors:ro
+      - ./transform:/app/transform:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  # ==========================================
+  # INGESTORS
+  # ==========================================
+  api_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.api_ingestor
+      target: development
+      cache_from:
+        - gsc-api-ingestor:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./ingestors/api:/app/ingestors/api:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  ga4_ingestor:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.ga4_ingestor
+      target: development
+      cache_from:
+        - gsc-ga4-ingestor:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./ingestors/ga4:/app/ingestors/ga4:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  # ==========================================
+  # TRANSFORM SERVICE
+  # ==========================================
+  transform:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.transformer
+      target: development
+      cache_from:
+        - gsc-transformer:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./transform:/app/transform:ro
+      - ./sql:/app/sql:ro
+    environment:
+      LOG_LEVEL: DEBUG
+
+  # ==========================================
+  # INSIGHTS ENGINE
+  # ==========================================
+  insights_engine:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_engine
+      target: development
+      cache_from:
+        - gsc-insights-engine:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./insights_core:/app/insights_core:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  # ==========================================
+  # SCHEDULER
+  # ==========================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.scheduler
+      target: development
+      cache_from:
+        - gsc-scheduler:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./scheduler:/app/scheduler:ro
+      - ./ingestors:/app/ingestors:ro
+      - ./transform:/app/transform:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  # ==========================================
+  # INSIGHTS API - Hot Reload
+  # ==========================================
+  insights_api:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.insights_api
+      target: development
+      cache_from:
+        - gsc-insights-api:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./insights_api:/app/insights_api:ro
+      - ./insights_core:/app/insights_core:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+      WORKERS: 1
+    # Healthcheck already configured in Dockerfile
+
+  # ==========================================
+  # MCP SERVER - Hot Reload
+  # ==========================================
+  mcp:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.mcp
+      target: development
+      cache_from:
+        - gsc-mcp:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./mcp:/app/mcp:ro
+      - ./insights_core:/app/insights_core:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+
+  # ==========================================
+  # METRICS EXPORTER - Hot Reload
+  # ==========================================
+  metrics_exporter:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.metrics
+      target: development
+      cache_from:
+        - gsc-metrics:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./metrics_exporter:/app/metrics_exporter:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      FLASK_ENV: development
+
+  # ==========================================
+  # CELERY WORKER - Hot Reload
+  # ==========================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.celery
+      target: development
+      cache_from:
+        - gsc-celery:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    volumes:
+      - ./insights_core:/app/insights_core:ro
+      - ./services:/app/services:ro
+      - ./agents:/app/agents:ro
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTHONDONTWRITEBYTECODE: 0
+    # Auto-reload already configured in Dockerfile development target
+
+  # ==========================================
+  # PYPI CACHE SERVER (Development Only)
+  # ==========================================
+  pypi-cache:
+    image: muccg/devpi:latest
+    container_name: gsc_pypi_cache
+    volumes:
+      - devpi-data:/data
+    ports:
+      - "3141:3141"
+    networks:
+      - gsc_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3141/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ==========================================
+# DEVELOPMENT VOLUMES
+# ==========================================
+volumes:
+  devpi-data:
+    driver: local
+    labels:
+      environment: development
+      purpose: pip-cache-server
