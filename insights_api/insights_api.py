@@ -11,7 +11,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
@@ -56,6 +56,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include modular routers
+from insights_api.routes import aggregations_router, actions_router
+app.include_router(aggregations_router)
+app.include_router(actions_router)
+
 # Initialize config and repository
 config = InsightsConfig()
 repository: Optional[InsightRepository] = None
@@ -72,6 +77,215 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize repository: {e}")
         raise
+
+
+# ============================================================================
+# INDEX & NAVIGATION
+# ============================================================================
+
+INDEX_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Data Warehouse</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #888; font-size: 1.1rem; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.1);
+            border-color: #00d9ff;
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+        .card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card p { color: #888; font-size: 0.9rem; line-height: 1.5; }
+        .card .port {
+            display: inline-block;
+            background: rgba(0, 217, 255, 0.2);
+            color: #00d9ff;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            margin-left: auto;
+        }
+        .section-title {
+            font-size: 1rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+            border-left: 3px solid #00d9ff;
+        }
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .status.loading { background: rgba(255, 200, 0, 0.1); border-color: rgba(255, 200, 0, 0.3); }
+        .status.error { background: rgba(255, 100, 100, 0.1); border-color: rgba(255, 100, 100, 0.3); }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #555;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Site Data Warehouse</h1>
+            <p class="subtitle">GSC & GA4 Analytics Platform</p>
+        </header>
+
+        <h2 class="section-title">API & Documentation</h2>
+        <div class="grid">
+            <a href="/api/docs" class="card">
+                <h3>📖 API Documentation <span class="port">:8000</span></h3>
+                <p>Interactive Swagger UI for exploring and testing the Insights API endpoints.</p>
+            </a>
+            <a href="/api/redoc" class="card">
+                <h3>📚 ReDoc <span class="port">:8000</span></h3>
+                <p>Alternative API documentation with a clean, readable format.</p>
+            </a>
+            <a href="/api/health" class="card">
+                <h3>💚 Health Check <span class="port">:8000</span></h3>
+                <p>API health status and database connection verification.</p>
+            </a>
+            <a href="/api/stats" class="card">
+                <h3>📈 API Stats <span class="port">:8000</span></h3>
+                <p>Repository statistics including total insights and categories.</p>
+            </a>
+        </div>
+
+        <h2 class="section-title">Monitoring & Dashboards</h2>
+        <div class="grid">
+            <a href="http://localhost:3000" class="card" target="_blank">
+                <h3>📊 Grafana <span class="port">:3000</span></h3>
+                <p>Visualization dashboards for GSC metrics, GA4 data, and system performance.</p>
+            </a>
+            <a href="http://localhost:9090" class="card" target="_blank">
+                <h3>🔥 Prometheus <span class="port">:9090</span></h3>
+                <p>Metrics collection and alerting. Query and explore time-series data.</p>
+            </a>
+            <a href="http://localhost:8080" class="card" target="_blank">
+                <h3>🐳 cAdvisor <span class="port">:8080</span></h3>
+                <p>Container resource usage and performance monitoring.</p>
+            </a>
+        </div>
+
+        <h2 class="section-title">Services</h2>
+        <div class="grid">
+            <a href="http://localhost:8001/docs" class="card" target="_blank">
+                <h3>🔌 MCP Server <span class="port">:8001</span></h3>
+                <p>Model Context Protocol server for AI-powered analytics queries.</p>
+            </a>
+            <a href="http://localhost:8002/metrics" class="card" target="_blank">
+                <h3>📏 Metrics Exporter <span class="port">:8002</span></h3>
+                <p>Custom application metrics in Prometheus format.</p>
+            </a>
+            <a href="http://localhost:9121/metrics" class="card" target="_blank">
+                <h3>🔴 Redis Exporter <span class="port">:9121</span></h3>
+                <p>Redis metrics for monitoring cache performance.</p>
+            </a>
+            <a href="http://localhost:9187/metrics" class="card" target="_blank">
+                <h3>🐘 Postgres Exporter <span class="port">:9187</span></h3>
+                <p>PostgreSQL database metrics and performance stats.</p>
+            </a>
+        </div>
+
+        <div class="status" id="status">
+            Checking system status...
+        </div>
+
+        <footer>
+            Site Data Warehouse v1.0 &bull; GSC & GA4 Analytics Platform
+        </footer>
+    </div>
+
+    <script>
+        async function checkHealth() {
+            const statusEl = document.getElementById('status');
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                if (data.status === 'healthy') {
+                    statusEl.className = 'status';
+                    statusEl.innerHTML = `✅ System Healthy &bull; Database Connected &bull; ${data.total_insights || 0} Total Insights`;
+                } else {
+                    statusEl.className = 'status loading';
+                    statusEl.innerHTML = '⏳ System Initializing...';
+                }
+            } catch (e) {
+                statusEl.className = 'status error';
+                statusEl.innerHTML = '❌ Unable to connect to API';
+            }
+        }
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>
+"""
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    """Render the system index page"""
+    return INDEX_HTML
 
 
 # ============================================================================
