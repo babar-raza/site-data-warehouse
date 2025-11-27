@@ -72,3 +72,207 @@ groups:
         annotations:
           summary: "Watermark lagging for {{ $labels.property }}"
           description: "Watermark for {{ $labels.property }} ({{ $labels.source_type }}) is {{ $value }} days behind."
+
+  # ==========================================
+  # INFRASTRUCTURE ALERTS
+  # ==========================================
+  - name: infrastructure_alerts
+    interval: 15s
+    rules:
+      # Container down
+      - alert: ContainerDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.name }}"
+          description: "Container {{ $labels.name }} is using {{ $value | humanize }}% of its memory limit."
+
+      # Critical memory usage
+      - alert: CriticalMemoryUsage
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage on {{ $labels.name }}"
+          description: "Container {{ $labels.name }} is using {{ $value | humanize }}% of its memory limit and may OOM soon."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: sum(rate(container_cpu_usage_seconds_total{name!=""}[5m])) by (name) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.name }}"
+          description: "Container {{ $labels.name }} CPU usage is {{ $value | humanize }}%."
+
+      # Container restarts
+      - alert: ContainerRestarting
+        expr: rate(container_last_seen{name!=""}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+          description: "Container {{ $labels.name }} has restarted multiple times in the last 10 minutes."
+
+  # ==========================================
+  # DATABASE ALERTS
+  # ==========================================
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database connections near limit
+      - alert: DatabaseConnectionsHigh
+        expr: sum(pg_stat_database_numbackends{datname!~"template.*|postgres"}) / sum(pg_settings_max_connections) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections near limit"
+          description: "Database connection usage is at {{ $value | humanize }}% of max_connections."
+
+      # Database connections critical
+      - alert: DatabaseConnectionsCritical
+        expr: sum(pg_stat_database_numbackends{datname!~"template.*|postgres"}) / sum(pg_settings_max_connections) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL connections critically high"
+          description: "Database connection usage is at {{ $value | humanize }}% of max_connections. Connection exhaustion imminent."
+
+      # Low cache hit ratio
+      - alert: LowCacheHitRatio
+        expr: sum(pg_stat_database_blks_hit{datname!~"template.*|postgres"}) / (sum(pg_stat_database_blks_hit{datname!~"template.*|postgres"}) + sum(pg_stat_database_blks_read{datname!~"template.*|postgres"})) * 100 < 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL cache hit ratio is low"
+          description: "Cache hit ratio is {{ $value | humanize }}%. Consider increasing shared_buffers."
+
+      # Deadlocks detected
+      - alert: DatabaseDeadlocks
+        expr: rate(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deadlocks detected in {{ $labels.datname }}"
+          description: "Database {{ $labels.datname }} is experiencing deadlocks at {{ $value | humanize }} per second."
+
+      # High rollback rate
+      - alert: HighRollbackRate
+        expr: rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m]) / (rate(pg_stat_database_xact_commit{datname!~"template.*|postgres"}[5m]) + rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m])) * 100 > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transaction rollback rate in {{ $labels.datname }}"
+          description: "Database {{ $labels.datname }} rollback rate is {{ $value | humanize }}%. This may indicate application errors."
+
+  # ==========================================
+  # REDIS ALERTS (Intelligence Profile)
+  # ==========================================
+  - name: redis_alerts
+    interval: 15s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server has been unavailable for more than 1 minute."
+
+      # High memory usage
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using {{ $value | humanize }}% of max memory. Eviction may occur."
+
+      # Low hit rate
+      - alert: RedisLowHitRate
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100 < 80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache hit rate is low"
+          description: "Cache hit rate is {{ $value | humanize }}%. Consider reviewing cache strategy."
+
+      # Too many clients
+      - alert: RedisTooManyClients
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many Redis clients"
+          description: "{{ $value }} clients are connected to Redis. This may indicate connection leaks."
+
+  # ==========================================
+  # PROMETHEUS SELF-MONITORING
+  # ==========================================
+  - name: prometheus_alerts
+    interval: 15s
+    rules:
+      # Scrape target down
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus target {{ $labels.job }} is down"
+          description: "{{ $labels.job }} target at {{ $labels.instance }} has been down for more than 2 minutes."
+
+      # High scrape duration
+      - alert: PrometheusHighScrapeDuration
+        expr: prometheus_target_interval_length_seconds{quantile="0.99"} > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus scrape duration is high for {{ $labels.job }}"
+          description: "Scraping {{ $labels.job }} is taking {{ $value | humanize }} seconds."
+
+      # Too many time series
+      - alert: PrometheusTooManyTimeSeries
+        expr: prometheus_tsdb_head_series > 100000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus has too many time series"
+          description: "Prometheus is tracking {{ $value }} time series. Consider reducing cardinality."
+
+      # WAL corruption
+      - alert: PrometheusWALCorruption
+        expr: increase(prometheus_tsdb_wal_corruptions_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus WAL corruption detected"
+          description: "Write-Ahead Log corruption detected. Data loss may occur."

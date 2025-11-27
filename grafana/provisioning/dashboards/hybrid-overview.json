@@ -1,0 +1,501 @@
+{
+  "title": "Hybrid Analytics - GSC + GA4 Unified",
+  "uid": "hybrid-overview",
+  "version": 2,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "5m",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "links": [
+    {"asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["analytics"], "targetBlank": true, "title": "Analytics Dashboards", "type": "dashboards"},
+    {"icon": "dashboard", "title": "GSC Overview", "type": "link", "url": "/d/gsc-overview", "targetBlank": true},
+    {"icon": "dashboard", "title": "GA4 Overview", "type": "link", "url": "/d/ga4-overview", "targetBlank": true}
+  ],
+  "panels": [
+    {"id": 100, "title": "Funnel Metrics (30 Days)", "type": "row", "gridPos": {"h": 1, "w": 24, "x": 0, "y": -1}, "collapsed": false},
+    {
+      "id": 1,
+      "title": "Search Impressions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(impressions)::bigint as \"Impressions\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#3274D9", "value": null},
+              {"color": "#73BF69", "value": 100000}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Search Clicks",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(clicks)::bigint as \"Clicks\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#FADE2A", "value": null},
+              {"color": "#73BF69", "value": 10000}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "GA4 Sessions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(sessions)::bigint as \"Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#FF9830", "value": null},
+              {"color": "#73BF69", "value": 5000}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Conversions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(conversions)::bigint as \"Conversions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 10},
+              {"color": "#73BF69", "value": 100}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Search CTR",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 4},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND((SUM(clicks)::numeric / NULLIF(SUM(impressions), 0)), 4) as \"CTR\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 0.02},
+              {"color": "#73BF69", "value": 0.05}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Click-to-Session Rate",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 4},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND((SELECT SUM(sessions) FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days')::numeric / NULLIF((SELECT SUM(clicks) FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'), 0), 4) as \"Rate\"",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 0.5},
+              {"color": "#73BF69", "value": 0.8}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Conversion Rate",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 4},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0)), 4) as \"Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 0.01},
+              {"color": "#73BF69", "value": 0.05}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "End-to-End Rate (Impression→Conversion)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 4},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND((SELECT SUM(conversions) FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days')::numeric / NULLIF((SELECT SUM(impressions) FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days'), 0), 6) as \"Rate\"",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 4,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 0.0001},
+              {"color": "#73BF69", "value": 0.001}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Complete Funnel Over Time",
+      "type": "timeseries",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
+      "targets": [
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(impressions) / 100 as \"Impressions (×100)\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days' GROUP BY date ORDER BY date",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(clicks) as \"Clicks\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days' GROUP BY date ORDER BY date",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(sessions) as \"Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days' GROUP BY date ORDER BY date",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(conversions) * 10 as \"Conversions (×10)\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '30 days' GROUP BY date ORDER BY date",
+          "refId": "D"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "High-Value Opportunity Pages",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 18},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(gsc_clicks) as gsc_clicks, SUM(gsc_impressions) as gsc_impressions, ROUND(AVG(gsc_ctr)::numeric, 4) as gsc_ctr, ROUND(AVG(gsc_position)::numeric, 1) as gsc_position, SUM(ga_sessions) as ga_sessions, ROUND(AVG(ga_engagement_rate)::numeric, 4) as ga_engagement, ROUND(AVG(ga_bounce_rate)::numeric, 4) as ga_bounce, SUM(ga_conversions) as ga_conversions, CASE WHEN SUM(gsc_clicks) > 100 AND AVG(ga_engagement_rate) < 0.3 THEN 'Low Engagement' WHEN SUM(gsc_clicks) > 100 AND AVG(ga_bounce_rate) > 0.7 THEN 'High Bounce' WHEN SUM(gsc_impressions) > 1000 AND AVG(gsc_ctr) < 0.02 THEN 'Low CTR' ELSE 'Monitor' END as opportunity FROM gsc.vw_unified_page_performance WHERE date >= CURRENT_DATE - INTERVAL '30 days' AND gsc_clicks > 0 AND ga_sessions > 0 GROUP BY property, page_path HAVING SUM(gsc_clicks) > 50 AND SUM(ga_sessions) > 0 ORDER BY SUM(gsc_clicks) DESC LIMIT 30",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "gsc_clicks", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "gsc_ctr"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "ga_engagement"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "ga_bounce"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "SEO Opportunity Pages (High Conversion, Low Visibility)",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 18},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(ga_sessions) as ga_sessions, SUM(ga_conversions) as ga_conversions, ROUND(AVG(session_conversion_rate)::numeric, 4) as ga_conv_rate, SUM(gsc_clicks) as gsc_clicks, SUM(gsc_impressions) as gsc_impressions, ROUND(AVG(gsc_position)::numeric, 1) as gsc_position, CASE WHEN AVG(session_conversion_rate) > 0.05 AND AVG(gsc_position) > 10 THEN 'SEO Opportunity' WHEN SUM(ga_sessions) > 100 AND SUM(gsc_clicks) < 50 THEN 'Low Visibility' WHEN SUM(ga_conversions) > 10 AND SUM(gsc_impressions) < 1000 THEN 'Hidden Gem' ELSE 'Monitor' END as seo_opportunity FROM gsc.vw_unified_page_performance WHERE date >= CURRENT_DATE - INTERVAL '30 days' AND ga_sessions > 0 AND gsc_clicks > 0 GROUP BY property, page_path HAVING SUM(ga_sessions) > 50 ORDER BY AVG(session_conversion_rate) DESC, SUM(ga_sessions) DESC LIMIT 30",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "ga_conv_rate", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "ga_conv_rate"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.displayMode", "value": "color-background"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Traffic Source Effectiveness Matrix",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "WITH page_metrics AS (SELECT RTRIM(property, '/') || page_path as page, SUM(gsc_clicks) as clicks, SUM(ga_sessions) as sessions, SUM(ga_conversions) as conversions, AVG(ga_engagement_rate) as engagement FROM gsc.vw_unified_page_performance WHERE date >= CURRENT_DATE - INTERVAL '30 days' AND gsc_clicks > 0 AND ga_sessions > 0 GROUP BY property, page_path) SELECT CASE WHEN clicks > 200 THEN 'High Traffic' WHEN clicks > 50 THEN 'Medium Traffic' ELSE 'Low Traffic' END as traffic_segment, CASE WHEN engagement > 0.5 THEN 'High Engagement' WHEN engagement > 0.3 THEN 'Medium Engagement' ELSE 'Low Engagement' END as engagement_segment, COUNT(DISTINCT page) as page_count, SUM(clicks) as total_clicks, SUM(sessions) as total_sessions, SUM(conversions) as total_conversions, ROUND(AVG(engagement)::numeric, 4) as avg_engagement FROM page_metrics GROUP BY traffic_segment, engagement_segment ORDER BY total_conversions DESC",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "avg_engagement"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "total_conversions"},
+            "properties": [{"id": "custom.displayMode", "value": "color-background"}]
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Top Performing Content (Composite Score)",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 36},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "WITH page_metrics AS (SELECT RTRIM(property, '/') || page_path as full_url, SUM(gsc_clicks) as clicks, ROUND(AVG(gsc_ctr)::numeric, 4) as ctr, ROUND(AVG(gsc_position)::numeric, 1) as position, SUM(ga_sessions) as sessions, SUM(ga_conversions) as conversions, ROUND(AVG(ga_engagement_rate)::numeric, 4) as engagement FROM gsc.vw_unified_page_performance WHERE date >= CURRENT_DATE - INTERVAL '30 days' AND gsc_clicks > 0 AND ga_sessions > 0 GROUP BY property, page_path), scores AS (SELECT full_url, clicks, ctr, position, sessions, conversions, engagement, (COALESCE(clicks, 0) / NULLIF((SELECT MAX(clicks) FROM page_metrics), 0) * 0.2 + (1.0 - COALESCE(position, 100) / 100.0) * 0.2 + COALESCE(sessions, 0) / NULLIF((SELECT MAX(sessions) FROM page_metrics), 0) * 0.3 + COALESCE(engagement, 0) * 0.15 + COALESCE(conversions, 0) / NULLIF((SELECT MAX(conversions) FROM page_metrics), 0) * 0.15) as score FROM page_metrics WHERE clicks > 10 AND sessions > 10) SELECT full_url, clicks, ctr, position, sessions, conversions, engagement, ROUND(score::numeric, 4) as performance_score FROM scores ORDER BY score DESC LIMIT 20",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "performance_score", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "ctr"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "engagement"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "performance_score"},
+            "properties": [
+              {"id": "custom.displayMode", "value": "gradient-gauge"},
+              {"id": "max", "value": 1}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "title": "Pages Needing Attention (Issues Detected)",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 36},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(gsc_clicks) as clicks, ROUND(AVG(gsc_ctr)::numeric, 4) as ctr, ROUND(AVG(gsc_position)::numeric, 1) as position, SUM(ga_sessions) as sessions, SUM(ga_conversions) as conversions, ROUND(AVG(ga_bounce_rate)::numeric, 4) as bounce, ROUND(AVG(ga_engagement_rate)::numeric, 4) as engagement, CASE WHEN SUM(gsc_clicks) > 100 AND AVG(ga_bounce_rate) > 0.8 THEN 'High Bounce - Content Issue' WHEN SUM(gsc_clicks) > 100 AND AVG(ga_engagement_rate) < 0.2 THEN 'Low Engagement - UX Issue' WHEN AVG(gsc_ctr) < 0.02 AND AVG(gsc_position) < 5 THEN 'Low CTR - Title/Meta Issue' WHEN SUM(ga_sessions) > 100 AND SUM(ga_conversions) = 0 THEN 'No Conversions - CTA Issue' WHEN AVG(gsc_position) > 20 AND SUM(ga_conversions) > 0 THEN 'SEO Opportunity' ELSE 'Monitor' END as issue_type FROM gsc.vw_unified_page_performance WHERE date >= CURRENT_DATE - INTERVAL '30 days' AND gsc_clicks > 0 AND ga_sessions > 0 GROUP BY property, page_path HAVING (SUM(gsc_clicks) > 50 AND AVG(ga_bounce_rate) > 0.7) OR (SUM(gsc_clicks) > 50 AND AVG(ga_engagement_rate) < 0.3) OR (AVG(gsc_ctr) < 0.02 AND AVG(gsc_position) < 10) OR (SUM(ga_sessions) > 50 AND SUM(ga_conversions) = 0) ORDER BY SUM(gsc_clicks) DESC LIMIT 30",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "clicks", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "ctr"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "bounce"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.displayMode", "value": "color-background"}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "engagement"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.displayMode", "value": "color-background"}
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "style": "dark",
+  "tags": ["hybrid", "gsc", "ga4", "unified", "funnel"],
+  "description": "Unified GSC + GA4 analytics dashboard showing complete user journey from search impressions to conversions with actionable insights"
+}

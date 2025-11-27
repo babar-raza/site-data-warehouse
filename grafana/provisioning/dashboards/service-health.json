@@ -1,0 +1,609 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#3274D9",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Monitor service health, availability, and performance metrics across all warehouse components",
+  "title": "Service Health",
+  "uid": "service-health",
+  "version": 3,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "tags": ["prometheus", "health", "services", "monitoring", "operations"],
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": ["monitoring"],
+      "targetBlank": true,
+      "title": "Related Dashboards",
+      "type": "dashboards"
+    },
+    {
+      "icon": "dashboard",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Infrastructure",
+      "type": "link",
+      "url": "/d/infrastructure-overview"
+    },
+    {
+      "icon": "dashboard",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Alerts",
+      "type": "link",
+      "url": "/d/alert-status"
+    }
+  ],
+  "panels": [
+    {
+      "id": 100,
+      "title": "Overview",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Services UP",
+      "description": "Number of services currently responding to health checks",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "count(up == 1)",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 3},
+              {"color": "#73BF69", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Services DOWN",
+      "description": "Number of services failing health checks - requires immediate attention if > 0",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "count(up == 0) OR vector(0)",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#FADE2A", "value": 1},
+              {"color": "#F2495C", "value": 2}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Overall Health Score",
+      "description": "Aggregate health score based on service availability (UP services / Total services)",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "(count(up == 1) / count(up)) * 100",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FF9830", "value": 50},
+              {"color": "#FADE2A", "value": 80},
+              {"color": "#73BF69", "value": 95}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Container Restarts (Last Hour)",
+      "description": "Total container restarts in the past hour - high values indicate instability",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(changes(container_last_seen{name!=\"\"}[1h])) OR vector(0)",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#FADE2A", "value": 3},
+              {"color": "#F2495C", "value": 10}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Average Response Time",
+      "description": "Average scrape response time across all targets",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "avg(prometheus_target_interval_length_seconds{quantile=\"0.99\"})",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#FADE2A", "value": 1},
+              {"color": "#F2495C", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Uptime",
+      "description": "Prometheus service uptime",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "time() - process_start_time_seconds{job=\"prometheus\"}",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 3600},
+              {"color": "#73BF69", "value": 86400}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 101,
+      "title": "Service Status Timeline",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Service Status Over Time",
+      "description": "Historical view of service availability - identify outage patterns",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "up",
+        "refId": "A",
+        "legendFormat": "{{job}}"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "mean"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "lineWidth": 2,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "DOWN", "color": "#F2495C"},
+                "1": {"text": "UP", "color": "#73BF69"}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#73BF69", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Resource Usage",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "collapsed": false
+    },
+    {
+      "id": 6,
+      "title": "Container CPU Usage by Service",
+      "description": "CPU utilization percentage per container",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(rate(container_cpu_usage_seconds_total{name!=\"\"}[5m])) by (name) * 100",
+        "refId": "A",
+        "legendFormat": "{{name}}"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max", "mean"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "lineWidth": 1
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#FADE2A", "value": 70},
+              {"color": "#F2495C", "value": 90}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Container Memory Usage by Service",
+      "description": "Memory consumption per container",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(container_memory_usage_bytes{name!=\"\"}) by (name)",
+        "refId": "A",
+        "legendFormat": "{{name}}"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max", "mean"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "lineWidth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Scrape Metrics",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "title": "Scrape Duration by Target",
+      "description": "Time taken to scrape each target - identify slow endpoints",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "prometheus_target_interval_length_seconds{quantile=\"0.99\"}",
+        "refId": "A",
+        "legendFormat": "{{job}}"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Failed Scrapes",
+      "description": "Rate of scrape failures - should be near zero",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(rate(prometheus_target_scrapes_exceeded_sample_limit_total[5m])) by (job) + sum(rate(prometheus_target_scrapes_sample_out_of_bounds_total[5m])) by (job) + sum(rate(prometheus_target_scrapes_sample_out_of_order_total[5m])) by (job)",
+        "refId": "A",
+        "legendFormat": "{{job}}"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#F2495C", "value": 0.1}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 104,
+      "title": "Health Check Details",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 32},
+      "collapsed": false
+    },
+    {
+      "id": 10,
+      "title": "Health Check Details",
+      "description": "Detailed status of all monitored endpoints",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 33},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "up",
+        "refId": "A",
+        "format": "table",
+        "instant": true
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Status",
+            "desc": false
+          }
+        ],
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "displayMode": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Status"},
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {"text": "DOWN", "color": "#F2495C"},
+                      "1": {"text": "UP", "color": "#73BF69"}
+                    }
+                  }
+                ]
+              },
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "custom.width", "value": 100}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Service"},
+            "properties": [
+              {"id": "custom.width", "value": 200}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Target"},
+            "properties": [
+              {"id": "custom.width", "value": 300}
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
+            "indexByName": {
+              "Value": 0,
+              "job": 1,
+              "instance": 2
+            },
+            "renameByName": {
+              "Value": "Status",
+              "job": "Service",
+              "instance": "Target"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,595 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#3274D9",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "GA4 Analytics overview showing sessions, conversions, engagement metrics, and user behavior patterns",
+  "title": "GA4 Analytics - Overview",
+  "uid": "ga4-overview",
+  "version": 2,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "5m",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "tags": ["ga4", "analytics", "conversions", "engagement"],
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["analytics"],
+      "targetBlank": true,
+      "title": "Analytics Dashboards",
+      "type": "dashboards"
+    },
+    {
+      "icon": "dashboard",
+      "tags": [],
+      "targetBlank": true,
+      "title": "GSC Overview",
+      "type": "link",
+      "url": "/d/gsc-overview"
+    },
+    {
+      "icon": "dashboard",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Hybrid View",
+      "type": "link",
+      "url": "/d/hybrid-overview"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": "All",
+        "current": {"selected": true, "text": "All", "value": "$__all"},
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "definition": "SELECT DISTINCT property FROM gsc.fact_ga4_daily ORDER BY property",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Property",
+        "multi": false,
+        "name": "property",
+        "options": [],
+        "query": "SELECT DISTINCT property FROM gsc.fact_ga4_daily ORDER BY property",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": true, "text": "30", "value": "30"},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Days",
+        "multi": false,
+        "name": "days",
+        "options": [
+          {"selected": false, "text": "7", "value": "7"},
+          {"selected": false, "text": "14", "value": "14"},
+          {"selected": true, "text": "30", "value": "30"},
+          {"selected": false, "text": "60", "value": "60"},
+          {"selected": false, "text": "90", "value": "90"}
+        ],
+        "query": "7,14,30,60,90",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "title": "Key Metrics",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Total Sessions",
+      "description": "Total sessions in the selected period",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(sessions)::bigint as \"Total Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 1000},
+              {"color": "#73BF69", "value": 5000}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Conversions",
+      "description": "Total conversions in the selected period",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT SUM(conversions)::bigint as \"Total Conversions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#3274D9", "value": null},
+              {"color": "#73BF69", "value": 100}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Avg Engagement Rate",
+      "description": "Average engagement rate - percentage of engaged sessions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND(AVG(engagement_rate)::numeric, 4) as \"Engagement Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 0.1},
+              {"color": "#73BF69", "value": 0.3}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Avg Bounce Rate",
+      "description": "Average bounce rate - lower is better",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND(AVG(bounce_rate)::numeric, 4) as \"Bounce Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#73BF69", "value": null},
+              {"color": "#FADE2A", "value": 0.5},
+              {"color": "#F2495C", "value": 0.7}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 101,
+      "title": "Period Comparison",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "title": "Sessions Change",
+      "description": "Sessions comparison: current period vs previous period",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 6},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "WITH current_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT SUM(sessions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": -5},
+              {"color": "#73BF69", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Conversions Change",
+      "description": "Conversions comparison: current period vs previous period",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 6},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "WITH current_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT SUM(conversions) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": -5},
+              {"color": "#73BF69", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Engagement Change",
+      "description": "Engagement rate comparison: current period vs previous period",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 6},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "WITH current_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')), previous_period AS (SELECT AVG(engagement_rate) as val FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' * 2 AND date < CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property')) SELECT ROUND(((c.val - p.val)::numeric / NULLIF(p.val, 0) * 100), 1) as \"Change %\" FROM current_period c, previous_period p",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": -5},
+              {"color": "#73BF69", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "Conversion Rate",
+      "description": "Overall conversion rate for the period",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 6},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0) * 100), 2) as \"Conversion Rate\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property')",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 10,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 1},
+              {"color": "#73BF69", "value": 3}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Trends",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 10},
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Sessions Over Time",
+      "description": "Daily sessions and engaged sessions trend",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 11},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "time_series",
+        "rawSql": "SELECT date as time, SUM(sessions) as sessions, SUM(engaged_sessions) as engaged_sessions FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
+        "refId": "A"
+      }],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "desc"},
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "GSC Clicks vs GA4 Sessions",
+      "description": "Correlation between search clicks and site sessions",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 11},
+      "targets": [
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(clicks) as \"GSC Clicks\" FROM gsc.fact_gsc_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' GROUP BY date ORDER BY date",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+          "format": "time_series",
+          "rawSql": "SELECT date as time, SUM(sessions) as \"GA4 Sessions\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi", "sort": "desc"},
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Top Content",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 19},
+      "collapsed": false
+    },
+    {
+      "id": 7,
+      "title": "Top Converting Pages",
+      "description": "Pages with highest conversions in the selected period",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT RTRIM(property, '/') || page_path as full_url, SUM(sessions) as sessions, SUM(conversions) as conversions, ROUND(AVG(conversion_rate)::numeric, 4) as avg_conversion_rate, ROUND(AVG(engagement_rate)::numeric, 4) as avg_engagement_rate, ROUND(AVG(bounce_rate)::numeric, 4) as avg_bounce_rate FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property') GROUP BY property, page_path ORDER BY conversions DESC, sessions DESC LIMIT 50",
+        "refId": "A"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "conversions", "desc": true}],
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto", "filterable": true}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "full_url"},
+            "properties": [{"id": "custom.width", "value": 400}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "sessions"},
+            "properties": [
+              {"id": "custom.displayMode", "value": "gradient-gauge"},
+              {"id": "custom.width", "value": 120}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "conversions"},
+            "properties": [
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "custom.width", "value": 100},
+              {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#3274D9", "value": null}, {"color": "#73BF69", "value": 5}]}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "avg_conversion_rate"},
+            "properties": [{"id": "unit", "value": "percentunit"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "avg_engagement_rate"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 0.2}, {"color": "#73BF69", "value": 0.4}]}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "avg_bounce_rate"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 0.5}, {"color": "#F2495C", "value": 0.7}]}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 104,
+      "title": "Distribution",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 30},
+      "collapsed": false
+    },
+    {
+      "id": 17,
+      "title": "Engagement Distribution",
+      "description": "Distribution of pages by engagement rate",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 31},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "table",
+        "rawSql": "SELECT category, COUNT(*) as count FROM (SELECT CASE WHEN AVG(engagement_rate) >= 0.5 THEN 'High (50%+)' WHEN AVG(engagement_rate) >= 0.3 THEN 'Medium (30-50%)' WHEN AVG(engagement_rate) >= 0.1 THEN 'Low (10-30%)' ELSE 'Very Low (<10%)' END as category FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND sessions > 0 AND ($property = 'All' OR property = '$property') GROUP BY property, page_path HAVING COUNT(*) > 0) page_engagement GROUP BY category ORDER BY CASE category WHEN 'High (50%+)' THEN 1 WHEN 'Medium (30-50%)' THEN 2 WHEN 'Low (10-30%)' THEN 3 ELSE 4 END",
+        "refId": "A"
+      }],
+      "options": {
+        "displayLabels": ["percent", "value"],
+        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+        "pieType": "donut",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "mappings": []
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "Conversion Rate Trend",
+      "description": "Daily conversion rate over time",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 31},
+      "targets": [{
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "format": "time_series",
+        "rawSql": "SELECT date as time, ROUND((SUM(conversions)::numeric / NULLIF(SUM(sessions), 0) * 100), 2) as \"Conversion Rate %\" FROM gsc.fact_ga4_daily WHERE date >= CURRENT_DATE - INTERVAL '${days} days' AND ($property = 'All' OR property = '$property') GROUP BY date ORDER BY date",
+        "refId": "A"
+      }],
+      "options": {
+        "tooltip": {"mode": "single"},
+        "legend": {"displayMode": "list", "placement": "bottom", "calcs": ["mean", "max"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "spanNulls": true,
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "thresholdsStyle": {"mode": "line"}
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "#F2495C", "value": null},
+              {"color": "#FADE2A", "value": 1},
+              {"color": "#73BF69", "value": 3}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "liveNow": false,
+  "style": "dark"
+}

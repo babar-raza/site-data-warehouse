@@ -1,0 +1,852 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#3274D9",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Application metrics for all data ingestors: GSC, GA4, SERP, CWV, and CSE",
+  "title": "Application Metrics",
+  "uid": "application-metrics",
+  "version": 3,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "tags": ["prometheus", "application", "ingestors", "monitoring"],
+  "links": [
+    {"asDropdown": true, "icon": "external link", "includeVars": false, "keepTime": true, "tags": ["monitoring"], "targetBlank": true, "title": "Related Dashboards", "type": "dashboards"},
+    {"icon": "dashboard", "title": "Service Health", "type": "link", "url": "/d/service-health", "targetBlank": true},
+    {"icon": "dashboard", "title": "Infrastructure", "type": "link", "url": "/d/infrastructure-overview", "targetBlank": true}
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Data Ingestors Overview",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "GSC Ingestor",
+      "description": "Google Search Console data collection status",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 0, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_warehouse_up",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "Down", "color": "#F2495C"}, "1": {"text": "Up", "color": "#73BF69"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "GA4 Ingestor",
+      "description": "Google Analytics 4 data collection status",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 4, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "ga4_ingestor_status",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "No Data", "color": "#FADE2A"}, "1": {"text": "Up", "color": "#73BF69"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "SERP Tracker",
+      "description": "SERP position tracking status",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 8, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_ingestor_status",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "No Data", "color": "#FADE2A"}, "1": {"text": "Up", "color": "#73BF69"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "CWV Monitor",
+      "description": "Core Web Vitals / PageSpeed monitoring status",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 12, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_ingestor_status",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "No Data", "color": "#FADE2A"}, "1": {"text": "Up", "color": "#73BF69"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "CSE Quota",
+      "description": "Google Custom Search Engine API quota remaining",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 16, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cse_quota_remaining",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 20}, {"color": "#73BF69", "value": 50}]}
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Daily Pipeline Runs",
+      "description": "Total pipeline executions",
+      "type": "stat",
+      "gridPos": {"h": 3, "w": 4, "x": 20, "y": 1},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_daily_runs_total",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}]}
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Data Freshness",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 4},
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "title": "GSC Data Freshness",
+      "description": "Days since last GSC data collection",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 5},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "max(gsc_data_freshness_days)",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 1}, {"color": "#F2495C", "value": 3}]}
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "GA4 Data Freshness",
+      "description": "Days since last GA4 data collection",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 5},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "max(ga4_data_freshness_days)",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 1}, {"color": "#F2495C", "value": 3}]}
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "SERP Data Freshness",
+      "description": "Days since last SERP check",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 5},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_data_freshness_days",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 1}, {"color": "#F2495C", "value": 7}]}
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "CWV Data Freshness",
+      "description": "Days since last Core Web Vitals check",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 5},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_data_freshness_days",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 1}, {"color": "#F2495C", "value": 7}]}
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "Data Volume",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+      "collapsed": false
+    },
+    {
+      "id": 21,
+      "title": "GSC Total Rows",
+      "description": "Total rows in GSC fact table",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 10},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_fact_table_total_rows",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 1000}, {"color": "#73BF69", "value": 10000}]}
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "GA4 Total Rows",
+      "description": "Total rows in GA4 fact table",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 10},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "ga4_fact_table_total_rows",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 1000}, {"color": "#73BF69", "value": 10000}]}
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "SERP Queries Tracked",
+      "description": "Active SERP queries being tracked",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 10},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_queries_active",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 24,
+      "title": "CWV Pages Monitored",
+      "description": "Pages being monitored for Core Web Vitals",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 10},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_pages_monitored",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 30,
+      "title": "Task Execution",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "collapsed": false
+    },
+    {
+      "id": 31,
+      "title": "Task Success Status",
+      "description": "Status of scheduled tasks (1=success, 0=failed)",
+      "type": "table",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 15},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_task_success",
+        "refId": "A",
+        "format": "table",
+        "instant": true
+      }],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "left", "displayMode": "auto", "filterable": true}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {"id": "mappings", "value": [{"type": "value", "options": {"0": {"text": "Failed", "color": "#F2495C"}, "1": {"text": "Success", "color": "#73BF69"}}}]},
+              {"id": "custom.displayMode", "value": "color-background"},
+              {"id": "custom.width", "value": 100}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "task_name"},
+            "properties": [{"id": "custom.width", "value": 200}]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "job": true, "instance": true},
+            "renameByName": {"task_name": "Task", "Value": "Status"}
+          }
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "Task Duration",
+      "description": "Execution duration of scheduled tasks",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 15},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_task_duration_seconds",
+        "refId": "A",
+        "legendFormat": "{{task_name}}"
+      }],
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "bars", "fillOpacity": 80, "showPoints": "never"}
+        }
+      }
+    },
+    {
+      "id": 40,
+      "title": "SERP Position Tracking",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 21},
+      "collapsed": false
+    },
+    {
+      "id": 41,
+      "title": "Average SERP Position",
+      "description": "Average position across all tracked queries",
+      "type": "gauge",
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 22},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_avg_position",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 1,
+          "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 11}, {"color": "#F2495C", "value": 30}]}
+        }
+      }
+    },
+    {
+      "id": 42,
+      "title": "Top 10 Rankings",
+      "description": "Queries ranking in top 10",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 22},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_top10_count",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 1}, {"color": "#73BF69", "value": 5}]}
+        }
+      }
+    },
+    {
+      "id": 43,
+      "title": "Not Ranking",
+      "description": "Queries not in top 100",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 22},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_not_ranking_count",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 3}, {"color": "#F2495C", "value": 10}]}
+        }
+      }
+    },
+    {
+      "id": 44,
+      "title": "Position Records",
+      "description": "Total SERP position history records",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 22},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "serp_position_records_total",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#FADE2A", "value": null}, {"color": "#73BF69", "value": 100}]}
+        }
+      }
+    },
+    {
+      "id": 50,
+      "title": "Core Web Vitals Performance",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27},
+      "collapsed": false
+    },
+    {
+      "id": 51,
+      "title": "Mobile Performance Score",
+      "description": "Average Lighthouse performance score (mobile)",
+      "type": "gauge",
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 28},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_avg_performance_score{strategy=\"mobile\"}",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FF9830", "value": 50}, {"color": "#FADE2A", "value": 75}, {"color": "#73BF69", "value": 90}]}
+        }
+      }
+    },
+    {
+      "id": 52,
+      "title": "Desktop Performance Score",
+      "description": "Average Lighthouse performance score (desktop)",
+      "type": "gauge",
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 28},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_avg_performance_score{strategy=\"desktop\"}",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FF9830", "value": 50}, {"color": "#FADE2A", "value": 75}, {"color": "#73BF69", "value": 90}]}
+        }
+      }
+    },
+    {
+      "id": 53,
+      "title": "Average LCP (Mobile)",
+      "description": "Average Largest Contentful Paint",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 28},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_avg_lcp_seconds{strategy=\"mobile\"}",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 2.5}, {"color": "#F2495C", "value": 4}]}
+        }
+      }
+    },
+    {
+      "id": 54,
+      "title": "CWV Pass Rate (Mobile)",
+      "description": "Percentage of pages passing CWV assessment",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 28},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "cwv_pass_rate{strategy=\"mobile\"}",
+        "refId": "A"
+      }],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 50}, {"color": "#73BF69", "value": 80}]}
+        }
+      }
+    },
+    {
+      "id": 60,
+      "title": "Insights Engine",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 33},
+      "collapsed": false
+    },
+    {
+      "id": 61,
+      "title": "Insights by Category",
+      "description": "Distribution of insights by category",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 34},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(gsc_insights_total) by (category)",
+        "refId": "A",
+        "legendFormat": "{{category}}"
+      }],
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"]},
+        "pieType": "pie",
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"}
+        }
+      }
+    },
+    {
+      "id": 62,
+      "title": "Insights by Severity",
+      "description": "Distribution of insights by severity",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 34},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "sum(gsc_insights_total) by (severity)",
+        "refId": "A",
+        "legendFormat": "{{severity}}"
+      }],
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"]},
+        "pieType": "pie",
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "critical"}, "properties": [{"id": "color", "value": {"fixedColor": "#F2495C", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "high"}, "properties": [{"id": "color", "value": {"fixedColor": "#FF9830", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "medium"}, "properties": [{"id": "color", "value": {"fixedColor": "#FADE2A", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "low"}, "properties": [{"id": "color", "value": {"fixedColor": "#73BF69", "mode": "fixed"}}]}
+        ]
+      }
+    },
+    {
+      "id": 70,
+      "title": "Supporting Services",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 42},
+      "collapsed": false
+    },
+    {
+      "id": 71,
+      "title": "Redis Memory Usage",
+      "description": "Redis memory consumption",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 43},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "redis_memory_used_bytes",
+        "refId": "A",
+        "legendFormat": "Used Memory"
+      }],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "showPoints": "never"}
+        }
+      }
+    },
+    {
+      "id": 72,
+      "title": "Redis Hit Rate",
+      "description": "Redis cache hit rate percentage",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 43},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+        "refId": "A",
+        "legendFormat": "Hit Rate %"
+      }],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "showPoints": "never"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#F2495C", "value": null}, {"color": "#FADE2A", "value": 80}, {"color": "#73BF69", "value": 95}]}
+        }
+      }
+    },
+    {
+      "id": 80,
+      "title": "Data Growth Trends",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 49},
+      "collapsed": false
+    },
+    {
+      "id": 81,
+      "title": "GSC Data Growth",
+      "description": "GSC fact table row growth over time",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 50},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "gsc_fact_table_total_rows",
+        "refId": "A",
+        "legendFormat": "GSC Rows"
+      }],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "showPoints": "never"}
+        }
+      }
+    },
+    {
+      "id": 82,
+      "title": "GA4 Data Growth",
+      "description": "GA4 fact table row growth over time",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 50},
+      "targets": [{
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "expr": "ga4_fact_table_total_rows",
+        "refId": "A",
+        "legendFormat": "GA4 Rows"
+      }],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "showPoints": "never"}
+        }
+      }
+    }
+  ]
+}
