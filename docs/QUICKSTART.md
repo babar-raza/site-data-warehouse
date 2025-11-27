@@ -6,10 +6,36 @@
 ## Prerequisites Checklist
 
 - [ ] **PostgreSQL 13+** installed
-- [ ] **Python 3.9+** installed  
+- [ ] **Python 3.9+** installed
 - [ ] **Docker & Docker Compose** installed
 - [ ] **Google Cloud Service Account** with GSC API access
 - [ ] **(Optional)** GA4 API credentials
+- [ ] **(Optional)** Ollama installed for LLM-enhanced agents
+
+### Need to Create API Credentials?
+
+If you don't have Google API credentials yet, follow these detailed guides first:
+
+1. **[GCP Setup Guide](../deployment/guides/GCP_SETUP_GUIDE.md)** - Complete guide for:
+   - Creating a Google Cloud Project
+   - Enabling required APIs (Search Console, Analytics)
+   - Creating service accounts
+   - Downloading credential JSON files
+
+2. **[GSC Integration Guide](../deployment/guides/GSC_INTEGRATION.md)** - Guide for:
+   - Adding service account to GSC properties
+   - Finding correct property URL formats
+   - Testing GSC API access
+
+3. **[GA4 Integration Guide](../deployment/guides/GA4_INTEGRATION.md)** - Guide for:
+   - Creating GA4 data streams
+   - Configuring property access
+   - Testing GA4 API connectivity
+
+4. **[Google Custom Search (CSE) Integration](QUICK_REFERENCE_CSE_INTEGRATION.md)** - Guide for:
+   - Creating a Custom Search Engine
+   - Getting API key and Search Engine ID
+   - Configuring SERP analysis for DiagnosisDetector
 
 ---
 
@@ -179,9 +205,24 @@ SELECT COUNT(*) FROM gsc.vw_unified_anomalies;
 
 ## Next Steps
 
-- **Read full README:** [`README.md`](README.md)
+### Core Documentation
+- **Read full README:** [`../README.md`](../README.md)
 - **Understand architecture:** [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- **Explore all docs:** [`INDEX.md`](INDEX.md)
+
+### Feature Guides
+- **Insight Engine Guide:** [`analysis/INSIGHT_ENGINE_GUIDE.md`](analysis/INSIGHT_ENGINE_GUIDE.md) - Complete guide to all detectors and insights
+- **Multi-Agent System:** [`analysis/MULTI_AGENT_SYSTEM.md`](analysis/MULTI_AGENT_SYSTEM.md) - Agent architecture and LLM integration
 - **Write custom detectors:** [`guides/DETECTOR_GUIDE.md`](guides/DETECTOR_GUIDE.md)
-- **Production deployment:** [`deployment/PRODUCTION_GUIDE.md`](deployment/PRODUCTION_GUIDE.md)
+
+### Operations
+- **Production deployment:** [`../deployment/guides/PRODUCTION_GUIDE.md`](../deployment/guides/PRODUCTION_GUIDE.md)
+- **Setup monitoring:** [`../deployment/guides/MONITORING_GUIDE.md`](../deployment/guides/MONITORING_GUIDE.md)
+- **Grafana dashboards:** [`guides/PROMETHEUS_DASHBOARDS_GUIDE.md`](guides/PROMETHEUS_DASHBOARDS_GUIDE.md)
+
+### Advanced Features
+- **URL Variations Tracking:** [`guides/URL_VARIATIONS_GUIDE.md`](guides/URL_VARIATIONS_GUIDE.md)
+- **Actions Command Center:** [`guides/ACTIONS_COMMAND_CENTER.md`](guides/ACTIONS_COMMAND_CENTER.md)
+- **MCP Integration:** [`guides/MCP_INTEGRATION.md`](guides/MCP_INTEGRATION.md)
 
 **Questions?** See [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)

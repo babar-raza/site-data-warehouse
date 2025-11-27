@@ -90,15 +90,16 @@ The GSC Data Warehouse is a microservices-based data platform designed for relia
          │   Scheduler      │
          │   Service        │
          ├──────────────────┤
-         │ Daily:           │
-         │  02:00 UTC       │
+         │ Daily: 12PM PKT  │
+         │  (07:00 UTC)     │
          │  - API Ingest    │
          │  - Transforms    │
+         │  - Insights      │
          │                  │
-         │ Weekly:          │
-         │  Sun 03:00 UTC   │
+         │ Weekly: Mon      │
+         │  12PM PKT        │
          │  - Reconcile     │
-         │  - Refresh       │
+         │  - Analysis      │
          └──────────────────┘
 
          ┌──────────────────┐
@@ -218,7 +219,7 @@ volumes:
 **Configuration**:
 ```yaml
 ports:
-  - "8000:8000"
+  - "8001:8001"
 environment:
   MCP_VERSION: "2025-01-18"
 ```
@@ -230,14 +231,70 @@ environment:
 **Technology**: Python 3.11 + APScheduler
 
 **Responsibilities**:
-- Run daily API ingestion
-- Execute weekly maintenance
-- Trigger transforms
-- Log execution metrics
+- Run daily data ingestion pipeline
+- Execute weekly maintenance tasks
+- Refresh insights multiple times daily
+- Log execution metrics to Prometheus
 
-**Schedule**:
-- **Daily** (02:00 UTC): API ingestion, transforms
-- **Weekly** (Sun 03:00 UTC): Reconciliation, refresh
+---
+
+## Operations Schedule
+
+All times shown in **Pakistan Standard Time (PKT, UTC+5)**.
+
+### Daily Pipeline (12:00 PM PKT / 7:00 AM UTC)
+
+| Task | Description |
+|------|-------------|
+| **API Ingestion** | GSC data collection from Google Search Console API |
+| **GA4 Collection** | Google Analytics 4 metrics (sessions, pageviews, conversions) |
+| **SERP Collection** | Search position tracking via SerpStack API |
+| **CWV Collection** | Core Web Vitals via PageSpeed Insights API |
+| **SQL Transforms** | Aggregation views, URL normalization, metrics calculation |
+| **Insights Refresh** | Anomaly detection, opportunities, risks analysis |
+| **Hugo Content Sync** | Sync GSC/GA4 data with Hugo markdown files |
+| **Content Action Execution** | Process approved SEO optimization actions |
+| **Trends Collection** | Google Trends data for tracked keywords |
+| **Watermark Check** | Verify data freshness and watermark status |
+
+### Insights Refresh (4x Daily)
+
+| Time (PKT) | Time (UTC) | Description |
+|------------|------------|-------------|
+| 6:00 AM | 1:00 AM | Early morning refresh |
+| 12:00 PM | 7:00 AM | Included in daily pipeline |
+| 6:00 PM | 1:00 PM | Evening refresh |
+| 12:00 AM | 7:00 PM | Midnight refresh |
+
+### Weekly Maintenance (Monday 12:00 PM PKT / 7:00 AM UTC)
+
+| Task | Description |
+|------|-------------|
+| **Watermark Reconciliation** | Fix gaps where watermarks advanced ahead of actual data |
+| **Data Reconciliation** | Re-fetch last 7 days of data to fill any gaps |
+| **SQL Transforms Refresh** | Full refresh of all aggregation views |
+| **Cannibalization Refresh** | Detect pages competing for same keywords |
+| **Content Analysis** | Deep content quality analysis |
+
+### Testing Commands
+
+```bash
+# Run daily pipeline manually
+docker exec gsc_scheduler python scheduler/scheduler.py --test-daily
+
+# Run weekly maintenance manually
+docker exec gsc_scheduler python scheduler/scheduler.py --test-weekly
+
+# Run specific tasks
+docker exec gsc_scheduler python scheduler/scheduler.py --test-hugo
+docker exec gsc_scheduler python scheduler/scheduler.py --test-insights
+docker exec gsc_scheduler python scheduler/scheduler.py --test-watermark-reconciliation
+
+# Show scheduled jobs without running
+docker exec gsc_scheduler python scheduler/scheduler.py --dry-run
+```
+
+---
 
 **Configuration**:
 ```yaml
@@ -413,8 +470,16 @@ services:
 All services implement health checks:
 
 ```yaml
+# Insights API (port 8000)
 healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# MCP Server (port 8001)
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
   interval: 30s
   timeout: 10s
   retries: 3
@@ -552,6 +617,173 @@ docker run --rm -v gsc_warehouse_data:/data \
   -v $(pwd):/backup alpine \
   tar xzf /backup/warehouse_data.tar.gz -C /data
 ```
+
+---
+
+## Additional System Overview Details
+
+### System Architecture Diagram (Mermaid)
+
+```mermaid
+graph TD
+    subgraph "Data Sources"
+        A[Google Search Console API]
+        B[Google Analytics 4 API]
+        C[PageSpeed API]
+        D[SERP APIs]
+    end
+
+    subgraph "Ingestion Layer"
+        E[GSC API Ingestor]
+        F[GA4 Ingestor]
+        G[SERP Collectors]
+    end
+
+    subgraph "Data Warehouse"
+        H[PostgreSQL Warehouse]
+    end
+
+    subgraph "Intelligence Layer"
+        I[Insight Engine<br/>8 Detectors]
+        J[Multi-Agent System<br/>LangGraph Orchestration]
+        K[Celery Workers<br/>Async Tasks]
+    end
+
+    subgraph "Serving Layer"
+        L[Insights API<br/>FastAPI]
+        M[MCP Server<br/>Claude Desktop]
+    end
+
+    subgraph "Monitoring & Observability"
+        N[Prometheus]
+        O[Grafana]
+        P[Metrics Exporters]
+    end
+
+    A --> E
+    B --> F
+    C --> G
+    D --> G
+    E --> H
+    F --> H
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    I --> L
+    J --> L
+    L --> M
+    H --> N
+    I --> N
+    J --> N
+    N --> O
+    P --> N
+```
+
+### Intelligence Layer Details
+
+#### Insight Detectors
+
+The system includes 8 specialized detectors:
+
+1. **AnomalyDetector** - Traffic and conversion anomalies
+2. **CannibalizationDetector** - Keyword cannibalization issues
+3. **ContentQualityDetector** - Content quality metrics
+4. **CWVQualityDetector** - Core Web Vitals performance
+5. **DiagnosisDetector** - Root cause analysis
+6. **OpportunityDetector** - Optimization opportunities
+7. **TopicStrategyDetector** - Topic coverage analysis
+8. **TrendDetector** - Gradual traffic trends
+
+**Key Files:**
+- `insights_core/detectors/*.py` - Individual detector implementations
+- `insights_core/repository.py` - Insight CRUD with deterministic IDs
+- `services/tasks.py` - Celery task definitions
+
+#### Multi-Agent System Architecture
+
+LangGraph-based orchestration with specialist agents:
+
+```
+                    +-------------------+
+                    | SupervisorAgent   |
+                    | (Orchestrator)    |
+                    +--------+----------+
+                         |
+     +--------------------+--------------------+
+     |                    |                    |
++-------v--------+  +--------v-------+  +--------v--------+
+| SerpAnalyst    |  | Performance    |  | ContentOptimizer|
+| Agent          |  | Agent          |  | Agent           |
++----------------+  +----------------+  +-----------------+
+     |                    |                    |
+     +--------------------+--------------------+
+                         |
+                    +--------v--------+
+                    | ImpactValidator |
+                    | Agent           |
+                    +-----------------+
+```
+
+**Workflow Types:**
+- `daily_analysis` - Automated health checks
+- `emergency_response` - React to sudden changes
+- `optimization` - Implement improvements
+- `validation` - Verify intervention success
+
+**Key Files:**
+- `agents/orchestration/supervisor_agent.py` - LangGraph workflow coordinator
+- `agents/orchestration/*_agent.py` - Specialist agent implementations
+- `agents/base/agent_contract.py` - Base agent interface
+
+### Celery Task Flow
+
+```
++-------------------+     +------------------+
+|   Task Triggers   |     |     Redis        |
+| - API calls       |---->| Broker (0)       |
+| - Scheduler       |     | Backend (1)      |
+| - Celery Beat     |     +--------+---------+
++-------------------+              |
+                                   |
+                         +--------v--------+
+                         | Celery Worker   |
+                         | (4 concurrent)  |
+                         +--------+--------+
+                                   |
+     +----------------------------+----------------------------+
+     |              |              |              |             |
++-----v----+  +------v-----+  +-----v-----+  +-----v----+  +-----v----+
+|Embeddings|  |Forecasting |  |SERP Track |  |CWV Mon   |  |Multi-    |
+|Generation|  |& Anomaly   |  |& Alerts   |  |& Alerts  |  |Agent     |
++----------+  +------------+  +-----------+  +----------+  |Workflows |
+                                                       +----------+
+```
+
+### Database Schema Organization
+
+| Schema | Purpose | Key Tables |
+|--------|---------|------------|
+| `gsc` | Core GSC data | `fact_gsc_daily`, `insights`, `agent_*` |
+| `content` | Content analysis | `page_snapshots`, `topics` |
+| `forecasts` | Predictions | `forecasts`, `anomalies` |
+| `serp` | SERP tracking | `rankings`, `competitors` |
+| `performance` | CWV data | `cwv_measurements` |
+| `analytics` | GA4 data | `fact_ga4_daily` |
+| `automation` | Auto-PR | `pull_requests`, `interventions` |
+| `notifications` | Alerts | `alerts`, `alert_rules`, `notification_queue` |
+| `orchestration` | Multi-agent | `workflows`, `workflow_steps` |
+| `trends` | Google Trends | `interest_over_time`, `related_queries` |
+
+### APScheduler Tasks
+
+> **Note**: The system uses APScheduler (not Celery) for task scheduling. All tasks are bundled into the daily pipeline and weekly maintenance jobs. See [Operations Schedule](#operations-schedule) for complete details.
+
+| Job | Schedule (PKT) | Tasks Included |
+|-----|----------------|----------------|
+| **Daily Pipeline** | 12:00 PM Mon-Sun | GSC, GA4, SERP, CWV, Transforms, Insights, Hugo, Trends |
+| **Insights Refresh** | 6 AM, 6 PM, 12 AM | Anomaly detection, opportunities, risks |
+| **Weekly Maintenance** | Monday 12:00 PM | Reconciliation, Cannibalization, Content Analysis |
 
 ---
 

@@ -86,8 +86,9 @@ After deployment, the following services will be available:
 | Warehouse | localhost:5432 | PostgreSQL database |
 | MCP Server | http://localhost:8000 | AI agent integration |
 | Insights API | http://localhost:8001 | REST API for dashboards |
-| Metrics | http://localhost:9090 | Prometheus metrics |
-| Prometheus | http://localhost:9091 | Metrics visualization |
+| Prometheus | http://localhost:9090 | Metrics collection and time-series database |
+| Grafana | http://localhost:3000 | Metrics visualization dashboards |
+| Metrics Exporter | http://localhost:8002 | Custom application metrics |
 
 ### Automated Schedules
 
@@ -150,8 +151,8 @@ chmod +x *.sh
 2. Or use the template: `secrets/gsc_sa.json.template`
 
 ### Issue: "Port already in use"
-**Solution**: 
-- Stop other services using ports 5432, 8000, 8001, 9090, 9091
+**Solution**:
+- Stop other services using ports 5432, 8000, 8001, 8002, 9090, 3000
 - Or modify ports in `docker-compose.yml`
 
 ### Issue: "Failed to build Docker images"
@@ -223,16 +224,18 @@ Not yet implemented (roadmap v2.0)
 
 ## Monitoring and Observability
 
+**Note**: Prometheus and Grafana are now always enabled and start automatically with `docker-compose up -d`
+
 ### View Metrics
 ```batch
-# Start metrics services
-docker compose --profile observability up -d
-
 # Access Prometheus
-start http://localhost:9091
+start http://localhost:9090
 
-# Query metrics
-curl http://localhost:9090/metrics
+# Access Grafana dashboards
+start http://localhost:3000
+
+# Query metrics endpoint
+curl http://localhost:8002/metrics
 ```
 
 ### Key Metrics
@@ -301,12 +304,24 @@ docker compose up -d
 ## Support
 
 For issues, questions, or contributions:
-- Check README.md for detailed documentation
+- Check [Main README](../README.md) for detailed documentation
+- Review [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
 - Review logs: `docker compose logs`
 - Run health check: `health-check.bat` or `./health-check.sh`
 
 ---
 
-**Status**: Production Ready  
-**Version**: 1.0.0  
-**Last Updated**: November 2025
+## Related Documentation
+
+- **[Main README](../README.md)** - Project overview and quick start
+- **[Quick Start Guide](QUICKSTART.md)** - 15-minute deployment
+- **[Deployment Scripts](../deployment/README.md)** - Automated deployment
+- **[Secrets Setup](../secrets/README.md)** - Credential management
+- **[Architecture Guide](ARCHITECTURE.md)** - System design
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues
+
+---
+
+**Status**: Production Ready
+**Version**: 1.0.0
+**Last Updated**: 2025-11-21

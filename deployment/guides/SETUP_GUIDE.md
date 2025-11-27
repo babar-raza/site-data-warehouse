@@ -9,10 +9,33 @@
 - **Python** 3.9+ ([Install](https://www.python.org/downloads/))
 - **Git** ([Install](https://git-scm.com/downloads))
 
+### Optional (for GPU Acceleration)
+- **NVIDIA GPU** with CUDA support
+- **NVIDIA Driver** 525.60+
+- **NVIDIA Container Toolkit** ([Install](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html))
+
 ### Google Cloud Setup
-1. Create a service account with GSC API access
-2. Download JSON credentials
-3. Place in `secrets/gsc_sa.json`
+
+**Complete Guide:** See [GCP_SETUP_GUIDE.md](GCP_SETUP_GUIDE.md) for detailed step-by-step instructions.
+
+**Quick Summary:**
+1. Create Google Cloud Project
+2. Enable APIs:
+   - Google Search Console API
+   - Google Analytics Data API
+3. Create service account with appropriate IAM roles
+4. Download JSON credentials
+5. Add service account to:
+   - Google Search Console properties (Full access)
+   - Google Analytics 4 properties (Viewer access)
+6. Place credentials in `secrets/gsc_sa.json`
+
+**Need help?** Follow the comprehensive [GCP Setup Guide](GCP_SETUP_GUIDE.md) which includes:
+- Detailed screenshots and instructions
+- IAM role configuration
+- GSC and GA4 integration steps
+- Troubleshooting common issues
+- Security best practices
 
 ## Installation Steps
 
@@ -42,7 +65,36 @@ cp secrets/gsc_sa.json.template secrets/gsc_sa.json
 # Edit secrets/gsc_sa.json with your credentials
 ```
 
-### 4. Deploy
+### 4. Build Docker Images
+
+The project supports **GPU/CPU PyTorch selection** to optimize image sizes.
+
+**CPU-only build (recommended for most users):**
+```bash
+# Linux/macOS
+./scripts/build-images.sh dev
+
+# Windows
+scripts\build-images.bat dev
+```
+
+**GPU build (for NVIDIA GPU systems):**
+```bash
+# Linux/macOS
+./scripts/build-images.sh prod --gpu
+
+# Windows
+scripts\build-images.bat prod --gpu
+```
+
+| Build Type | insights_engine Size | Best For |
+|------------|---------------------|----------|
+| CPU (default) | 2.75 GB | Most deployments |
+| GPU | 9.99 GB | NVIDIA GPU systems |
+
+> **Note:** See [DOCKER_BUILD_GUIDE.md](DOCKER_BUILD_GUIDE.md) for detailed build options.
+
+### 5. Deploy
 
 **Linux:**
 ```bash
@@ -56,7 +108,7 @@ cd deployment\windows
 deploy.bat
 ```
 
-### 5. Initial Data Load
+### 6. Initial Data Load
 ```bash
 # Ingest last 30 days
 python ingestors/api/gsc_api_ingestor.py \
@@ -64,7 +116,7 @@ python ingestors/api/gsc_api_ingestor.py \
     --date-end $(date +%Y-%m-%d)
 ```
 
-### 6. Generate Insights
+### 7. Generate Insights
 ```bash
 python -m insights_core.cli refresh
 ```

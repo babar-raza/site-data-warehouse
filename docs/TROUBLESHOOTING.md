@@ -451,7 +451,7 @@ Claude says: "I don't have access to your GSC data"
 docker-compose ps mcp
 
 # Test MCP endpoint
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 ```
 
 **Solution:**
@@ -509,7 +509,178 @@ tail -f logs/agents.log
 
 ---
 
-**Still stuck?** Check:
-- [Architecture documentation](ARCHITECTURE.md)
-- [Unified view guide](guides/UNIFIED_VIEW_GUIDE.md)
-- [E2E test plan](E2E_TEST_PLAN.md)
+---
+
+## Grafana Dashboard Issues
+
+### Issue: Grafana Dashboards Show "No Data"
+
+**Symptoms:**
+- Grafana dashboard panels show "No Data"
+- All panels are empty despite having data in PostgreSQL
+
+**Quick Diagnostic Script:**
+
+Run this command in a new command prompt window:
+
+```cmd
+cd C:\Users\prora\OneDrive\Documents\GitHub\site-data-warehouse
+diagnose_grafana.bat
+```
+
+This will run 8 diagnostic checks to identify the issue.
+
+**Manual Investigation Steps:**
+
+#### Step 1: Verify Data Exists in PostgreSQL
+
+```bash
+docker exec -it gsc_warehouse psql -U gsc_user -d gsc_db
+```
+
+Then run these queries:
+
+```sql
+-- Check total data and date range
+SELECT COUNT(*) as rows, MIN(date) as earliest, MAX(date) as latest
+FROM gsc.fact_gsc_daily;
+
+-- Test the exact query from Panel 1
+SELECT SUM(clicks)::bigint as "Total Clicks"
+FROM gsc.fact_gsc_daily
+WHERE date >= CURRENT_DATE - INTERVAL '30 days';
+
+-- Check data in last 90 days
+SELECT COUNT(*) FROM gsc.fact_gsc_daily
+WHERE date >= CURRENT_DATE - INTERVAL '90 days';
+```
+
+**Expected Results:**
+- Total rows: Should be > 0
+- Total Clicks (30d): Should return a number > 0
+- Data in 90 days: Should return rows > 0
+
+#### Step 2: Check Grafana Browser Console
+
+1. Open Grafana in browser: http://localhost:3000
+2. Press **F12** to open Browser DevTools
+3. Click **Console** tab
+4. Look for any red error messages
+
+**Common errors:**
+- `400 Bad Request` - Query syntax error
+- `500 Internal Server Error` - Database connection issue
+- `TypeError` - JavaScript error in panel rendering
+- `Query error` - SQL query failed
+
+#### Step 3: Test Datasource Connection
+
+1. In Grafana, go to **Configuration** (gear icon) → **Data sources**
+2. Click on **PostgreSQL**
+3. Scroll to bottom and click **Save & test**
+4. Should see green message: "Database Connection OK"
+
+If you see an error here, the issue is with datasource configuration.
+
+#### Step 4: Check Grafana Network Connectivity
+
+Run this to verify Grafana can reach PostgreSQL:
+
+```bash
+docker exec gsc_grafana sh -c "nc -zv gsc_warehouse 5432"
+```
+
+**Expected output:**
+```
+gsc_warehouse (172.x.x.x:5432) open
+```
+
+If you see "Connection refused" or timeout, run:
+
+```bash
+docker network connect gsc_network gsc_grafana
+docker restart gsc_grafana
+```
+
+#### Step 5: Verify Dashboard Time Range
+
+In Grafana dashboard:
+1. Look at top-right corner for time range selector
+2. Current setting should match your data date range
+3. Try manually selecting a wider range
+4. Click the refresh button
+
+#### Step 6: Test Query in Grafana Explore
+
+1. In Grafana, click **Explore** (compass icon in sidebar)
+2. Select datasource: **PostgreSQL**
+3. Switch to **Code** mode (toggle at top right)
+4. Paste this query:
+
+```sql
+SELECT
+    date AS time,
+    SUM(clicks) AS value
+FROM gsc.fact_gsc_daily
+WHERE date >= CURRENT_DATE - INTERVAL '90 days'
+GROUP BY date
+ORDER BY date
+```
+
+5. Click **Run query**
+6. Should see a line chart with data
+
+If this works but dashboard doesn't, the issue is with dashboard configuration.
+
+**Common Causes and Fixes:**
+
+**Issue 1: "No Data" with data in database**
+- **Cause:** Time range doesn't match data dates
+- **Fix:** Adjust time range to match your data period
+
+**Issue 2: "Query Error" in panels**
+- **Cause:** SQL syntax error or missing table
+- **Fix:** Check Grafana logs for specific SQL error
+
+**Issue 3: Panels show loading spinner forever**
+- **Cause:** Grafana can't reach PostgreSQL
+- **Fix:** Reconnect to gsc_network (see Step 4)
+
+**Issue 4: "No default database configured"**
+- **Cause:** Datasource missing database field
+- **Fix:** Edit datasource, add database: gsc_db
+
+**Quick Fix Attempts:**
+
+Try these in order:
+
+```bash
+# 1. Restart Grafana
+docker restart gsc_grafana
+
+# 2. Reconnect to network
+docker network connect gsc_network gsc_grafana
+docker restart gsc_grafana
+
+# 3. Check datasource health
+curl -u admin:admin http://localhost:3000/api/datasources/uid/postgres-gsc/health
+```
+
+Wait 30 seconds after each restart before testing.
+
+---
+
+## Related Documentation
+
+**Still stuck?** Check these resources:
+- **[Main README](../README.md)** - Project overview
+- **[Architecture Guide](ARCHITECTURE.md)** - System design
+- **[Unified View Guide](guides/UNIFIED_VIEW_GUIDE.md)** - Data layer details
+- **[E2E Test Plan](E2E_TEST_PLAN.md)** - Testing procedures
+- **[Deployment Guide](DEPLOYMENT.md)** - Deployment instructions
+- **[Quick Start](QUICKSTART.md)** - Fast setup guide
+- **[Documentation Index](INDEX.md)** - All documentation
+
+---
+
+**Last Updated**: 2025-11-21

@@ -333,9 +333,9 @@ COPY . .
 # Switch to non-root
 USER appuser
 
-# Health check
+# Health check (use /api/health for Insights API, /health for MCP)
 HEALTHCHECK --interval=30s --timeout=10s \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:8000/api/health || exit 1
 
 CMD ["python", "app.py"]
 ```
