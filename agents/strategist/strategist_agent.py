@@ -4,9 +4,10 @@ import argparse
 import asyncio
 import json
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import asyncpg
 import yaml
@@ -15,13 +16,39 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from agents.base.agent_contract import AgentContract, AgentHealth, AgentStatus
+from agents.base.llm_reasoner import ReasoningResult, RecommendationGenerator
 from agents.strategist.impact_estimator import ImpactEstimator
 from agents.strategist.prioritizer import Prioritizer
 from agents.strategist.recommendation_engine import RecommendationEngine
 
 
+@dataclass
+class RecommendationResult:
+    """Combined LLM + Rule-based recommendation result."""
+    diagnosis_id: int
+    recommendation_type: str
+    action_items: Dict[str, Any]
+    description: str
+    expected_impact: str
+    estimated_effort_hours: int
+    priority: int
+    confidence: float
+    llm_analysis: Optional[Dict[str, Any]] = None
+    rule_based_analysis: Optional[Dict[str, Any]] = None
+    rationale: str = ""
+    quick_wins: List[str] = field(default_factory=list)
+    strategic_initiatives: List[str] = field(default_factory=list)
+    metrics_to_monitor: List[str] = field(default_factory=list)
+    used_llm: bool = False
+    used_rule_fallback: bool = False
+
+
 class StrategistAgent(AgentContract):
     """Agent that generates actionable recommendations from diagnoses."""
+
+    # Confidence weights for hybrid LLM + rule-based approach
+    LLM_CONFIDENCE_WEIGHT = 0.6
+    RULE_CONFIDENCE_WEIGHT = 0.4
 
     def __init__(
         self,
@@ -30,30 +57,41 @@ class StrategistAgent(AgentContract):
         config: Optional[Dict[str, any]] = None
     ):
         """Initialize strategist agent.
-        
+
         Args:
             agent_id: Unique agent identifier
             db_config: Database configuration
             config: Optional agent configuration
         """
         super().__init__(agent_id, "strategist", config)
-        
+
         self.db_config = db_config
         self._pool: Optional[asyncpg.Pool] = None
-        
+
         # Initialize components
         self.recommendation_engine = RecommendationEngine()
-        
+
         self.impact_estimator = ImpactEstimator()
-        
+
         self.prioritizer = Prioritizer(
             impact_weight=config.get('impact_weight', 0.4),
             urgency_weight=config.get('urgency_weight', 0.3),
             effort_weight=config.get('effort_weight', 0.2),
             roi_weight=config.get('roi_weight', 0.1)
         )
-        
+
         self._recommendations: List[Dict] = []
+        self._recommendation_results: List[RecommendationResult] = []
+
+        # LLM integration
+        self.use_llm = config.get('use_llm', True)
+        ollama_host = config.get('ollama_host')
+
+        self.llm_reasoner = RecommendationGenerator(
+            ollama_host=ollama_host,
+            default_timeout=config.get('llm_timeout', 60.0),
+            max_retries=config.get('llm_max_retries', 2)
+        )
 
     async def initialize(self) -> bool:
         """Initialize the strategist agent."""
@@ -236,6 +274,401 @@ class StrategistAgent(AgentContract):
             })
         
         return stored_recs
+
+    async def recommend_with_llm(
+        self,
+        diagnosis_id: int
+    ) -> List[RecommendationResult]:
+        """Generate recommendations using hybrid LLM + rule-based approach.
+
+        Primary method for recommendation generation that combines LLM insights
+        with rule-based analysis for robust, actionable recommendations.
+
+        Args:
+            diagnosis_id: Diagnosis ID to generate recommendations for
+
+        Returns:
+            List of RecommendationResult objects with combined analysis
+        """
+        # Get diagnosis and context
+        diagnosis = await self._get_diagnosis(diagnosis_id)
+
+        if not diagnosis:
+            return []
+
+        finding_id = diagnosis.get('finding_id')
+        finding = await self._get_finding(finding_id)
+
+        if not finding:
+            return []
+
+        affected_pages = json.loads(finding.get('affected_pages', '[]'))
+
+        if not affected_pages:
+            return []
+
+        page_path = affected_pages[0]
+
+        # Get metrics for context
+        current_metrics = await self._get_page_current_metrics(page_path)
+        historical_metrics = await self._get_page_historical_metrics(page_path, days=30)
+
+        # Run rule-based recommendations
+        rule_based_recs = self._run_rule_based_recommendations(
+            diagnosis, current_metrics, historical_metrics
+        )
+
+        # Run LLM recommendations if enabled
+        llm_result = None
+        if self.use_llm:
+            llm_result = self._run_llm_recommendations(
+                diagnosis, current_metrics, historical_metrics, page_path
+            )
+
+        # Combine results
+        if llm_result and llm_result.success:
+            results = self._combine_llm_rule_results(
+                diagnosis_id, diagnosis, rule_based_recs, llm_result, current_metrics
+            )
+        else:
+            # Fallback to rule-based only
+            results = self._apply_rule_fallback(
+                diagnosis_id, diagnosis, rule_based_recs, current_metrics
+            )
+
+        self._recommendation_results.extend(results)
+        return results
+
+    def _run_rule_based_recommendations(
+        self,
+        diagnosis: Dict[str, Any],
+        current_metrics: Dict[str, float],
+        historical_metrics: List[Dict[str, float]]
+    ) -> List[Dict[str, Any]]:
+        """Run traditional rule-based recommendation generation.
+
+        Args:
+            diagnosis: Diagnosis data
+            current_metrics: Current page metrics
+            historical_metrics: Historical page metrics
+
+        Returns:
+            List of rule-based recommendation dictionaries
+        """
+        recommendations = self.recommendation_engine.generate_recommendations(
+            diagnosis,
+            current_metrics,
+            historical_metrics
+        )
+
+        rec_dicts = []
+        for rec in recommendations:
+            impact_est = self.impact_estimator.estimate_impact(
+                rec.recommendation_type,
+                diagnosis,
+                current_metrics,
+                historical_metrics
+            )
+
+            rec_dict = {
+                'recommendation_type': rec.recommendation_type,
+                'action_items': rec.action_items,
+                'description': rec.description,
+                'rationale': rec.rationale,
+                'expected_impact': impact_est.impact_level,
+                'expected_traffic_lift_pct': impact_est.traffic_lift_pct,
+                'estimated_effort_hours': impact_est.estimated_effort_hours,
+                'roi_score': impact_est.roi_score,
+                'confidence': impact_est.confidence
+            }
+            rec_dicts.append(rec_dict)
+
+        return rec_dicts
+
+    def _run_llm_recommendations(
+        self,
+        diagnosis: Dict[str, Any],
+        current_metrics: Dict[str, float],
+        historical_metrics: List[Dict[str, float]],
+        page_path: str
+    ) -> Optional[ReasoningResult]:
+        """Run LLM-based recommendation generation.
+
+        Args:
+            diagnosis: Diagnosis data
+            current_metrics: Current page metrics
+            historical_metrics: Historical page metrics
+            page_path: Path of affected page
+
+        Returns:
+            ReasoningResult from LLM or None if unavailable
+        """
+        # Format context for LLM
+        context, diagnosis_text, goals, constraints = self._format_context_for_llm(
+            diagnosis, current_metrics, historical_metrics, page_path
+        )
+
+        # Generate additional info
+        additional_info = ""
+        if historical_metrics:
+            avg_clicks = sum(m.get('clicks', 0) for m in historical_metrics) / len(historical_metrics)
+            additional_info = f"\nHistorical average clicks: {avg_clicks:.0f}"
+
+        return self.llm_reasoner.analyze(
+            context=context,
+            diagnosis=diagnosis_text,
+            goals=goals,
+            constraints=constraints,
+            additional_info=additional_info
+        )
+
+    def _format_context_for_llm(
+        self,
+        diagnosis: Dict[str, Any],
+        current_metrics: Dict[str, float],
+        historical_metrics: List[Dict[str, float]],
+        page_path: str
+    ) -> tuple:
+        """Format diagnosis and metrics context for LLM consumption.
+
+        Args:
+            diagnosis: Diagnosis data
+            current_metrics: Current page metrics
+            historical_metrics: Historical page metrics
+            page_path: Path of affected page
+
+        Returns:
+            Tuple of (context, diagnosis_text, goals, constraints)
+        """
+        # Build context string
+        context_parts = [f"Page: {page_path}"]
+
+        if current_metrics:
+            metrics_str = ", ".join(
+                f"{k}: {v}" for k, v in current_metrics.items()
+                if v is not None and k not in ['date']
+            )
+            context_parts.append(f"Current metrics: {metrics_str}")
+
+        context = ". ".join(context_parts)
+
+        # Build diagnosis text
+        root_cause = diagnosis.get('root_cause', 'Unknown')
+        confidence = diagnosis.get('confidence_score', 0.5)
+        evidence = diagnosis.get('supporting_evidence', {})
+
+        diagnosis_text = f"Root cause: {root_cause} (confidence: {confidence:.0%})"
+        if evidence:
+            if isinstance(evidence, dict):
+                evidence_str = ", ".join(f"{k}: {v}" for k, v in evidence.items())
+            else:
+                evidence_str = str(evidence)
+            diagnosis_text += f". Evidence: {evidence_str}"
+
+        # Determine goals based on diagnosis
+        goals_map = {
+            'position_drop': "Recover search rankings and organic traffic",
+            'ctr_decline': "Improve click-through rate and user engagement",
+            'high_bounce_rate': "Reduce bounce rate and increase engagement",
+            'zero_impression': "Restore visibility in search results",
+            'traffic_drop': "Recover organic traffic volume"
+        }
+        goals = goals_map.get(root_cause, "Improve overall SEO performance")
+
+        # Default constraints
+        constraints = "Limited engineering resources. Prioritize quick wins with high ROI."
+
+        return context, diagnosis_text, goals, constraints
+
+    def _combine_llm_rule_results(
+        self,
+        diagnosis_id: int,
+        diagnosis: Dict[str, Any],
+        rule_based_recs: List[Dict[str, Any]],
+        llm_result: ReasoningResult,
+        current_metrics: Dict[str, float]
+    ) -> List[RecommendationResult]:
+        """Combine LLM and rule-based recommendation results.
+
+        Uses weighted confidence scoring: 60% LLM, 40% rule-based.
+
+        Args:
+            diagnosis_id: Diagnosis ID
+            diagnosis: Diagnosis data
+            rule_based_recs: Rule-based recommendations
+            llm_result: LLM reasoning result
+            current_metrics: Current page metrics
+
+        Returns:
+            List of combined RecommendationResult objects
+        """
+        results = []
+        llm_content = llm_result.content if isinstance(llm_result.content, dict) else {}
+
+        # Extract LLM recommendations
+        llm_recommendations = llm_content.get('recommendations', [])
+        quick_wins = llm_content.get('quick_wins', [])
+        strategic_initiatives = llm_content.get('strategic_initiatives', [])
+        llm_reasoning = llm_content.get('reasoning', '')
+
+        # Map priority strings to numbers
+        priority_map = {'critical': 1, 'high': 2, 'medium': 3, 'low': 4}
+        effort_map = {'low': 2, 'medium': 4, 'high': 8}
+
+        # Create combined results
+        for i, rule_rec in enumerate(rule_based_recs):
+            # Get corresponding LLM recommendation if available
+            llm_rec = llm_recommendations[i] if i < len(llm_recommendations) else None
+
+            # Calculate combined confidence
+            rule_confidence = rule_rec.get('confidence', 0.5)
+            llm_confidence = 0.7 if llm_rec else 0.0  # Default LLM confidence
+
+            if llm_rec:
+                combined_confidence = (
+                    self.LLM_CONFIDENCE_WEIGHT * llm_confidence +
+                    self.RULE_CONFIDENCE_WEIGHT * rule_confidence
+                )
+            else:
+                combined_confidence = rule_confidence
+
+            # Get impact and effort from LLM or rule-based
+            if llm_rec:
+                expected_impact = llm_rec.get('expected_impact', rule_rec.get('expected_impact', 'medium'))
+                effort_str = llm_rec.get('effort', 'medium')
+                effort_hours = effort_map.get(effort_str, rule_rec.get('estimated_effort_hours', 4))
+                priority_str = llm_rec.get('priority', 'medium')
+                priority = priority_map.get(priority_str, 3)
+                metrics_to_monitor = llm_rec.get('metrics_to_monitor', [])
+            else:
+                expected_impact = rule_rec.get('expected_impact', 'medium')
+                effort_hours = rule_rec.get('estimated_effort_hours', 4)
+                priority = 3
+                metrics_to_monitor = []
+
+            # Build combined rationale
+            rationale = rule_rec.get('rationale', '')
+            if llm_reasoning:
+                rationale = f"{rationale}. LLM insight: {llm_reasoning}"
+
+            result = RecommendationResult(
+                diagnosis_id=diagnosis_id,
+                recommendation_type=rule_rec.get('recommendation_type', 'general'),
+                action_items=rule_rec.get('action_items', {}),
+                description=rule_rec.get('description', ''),
+                expected_impact=expected_impact,
+                estimated_effort_hours=effort_hours,
+                priority=priority,
+                confidence=combined_confidence,
+                llm_analysis=llm_rec,
+                rule_based_analysis=rule_rec,
+                rationale=rationale,
+                quick_wins=quick_wins,
+                strategic_initiatives=strategic_initiatives,
+                metrics_to_monitor=metrics_to_monitor,
+                used_llm=True,
+                used_rule_fallback=False
+            )
+            results.append(result)
+
+        # Add LLM-only recommendations not covered by rules
+        for j, llm_rec in enumerate(llm_recommendations[len(rule_based_recs):]):
+            priority_str = llm_rec.get('priority', 'medium')
+            effort_str = llm_rec.get('effort', 'medium')
+
+            result = RecommendationResult(
+                diagnosis_id=diagnosis_id,
+                recommendation_type='llm_generated',
+                action_items={'llm_action': {
+                    'action': llm_rec.get('action', 'Review LLM recommendation'),
+                    'steps': []
+                }},
+                description=llm_rec.get('action', ''),
+                expected_impact=llm_rec.get('expected_impact', 'medium'),
+                estimated_effort_hours=effort_map.get(effort_str, 4),
+                priority=priority_map.get(priority_str, 3),
+                confidence=0.7,
+                llm_analysis=llm_rec,
+                rule_based_analysis=None,
+                rationale=llm_reasoning,
+                quick_wins=quick_wins,
+                strategic_initiatives=strategic_initiatives,
+                metrics_to_monitor=llm_rec.get('metrics_to_monitor', []),
+                used_llm=True,
+                used_rule_fallback=False
+            )
+            results.append(result)
+
+        return results
+
+    def _apply_rule_fallback(
+        self,
+        diagnosis_id: int,
+        diagnosis: Dict[str, Any],
+        rule_based_recs: List[Dict[str, Any]],
+        current_metrics: Dict[str, float]
+    ) -> List[RecommendationResult]:
+        """Apply fallback to rule-based recommendations when LLM unavailable.
+
+        Args:
+            diagnosis_id: Diagnosis ID
+            diagnosis: Diagnosis data
+            rule_based_recs: Rule-based recommendations
+            current_metrics: Current page metrics
+
+        Returns:
+            List of RecommendationResult objects from rule-based only
+        """
+        results = []
+        priority_map = {'high': 1, 'medium': 2, 'low': 3}
+
+        for i, rec in enumerate(rule_based_recs):
+            impact_str = rec.get('expected_impact', 'medium')
+            priority = priority_map.get(impact_str, 2)
+
+            result = RecommendationResult(
+                diagnosis_id=diagnosis_id,
+                recommendation_type=rec.get('recommendation_type', 'general'),
+                action_items=rec.get('action_items', {}),
+                description=rec.get('description', ''),
+                expected_impact=rec.get('expected_impact', 'medium'),
+                estimated_effort_hours=rec.get('estimated_effort_hours', 4),
+                priority=priority,
+                confidence=rec.get('confidence', 0.5),
+                llm_analysis=None,
+                rule_based_analysis=rec,
+                rationale=rec.get('rationale', ''),
+                quick_wins=[],
+                strategic_initiatives=[],
+                metrics_to_monitor=[],
+                used_llm=False,
+                used_rule_fallback=True
+            )
+            results.append(result)
+
+        return results
+
+    def get_llm_stats(self) -> Dict[str, Any]:
+        """Get LLM usage statistics.
+
+        Returns:
+            Dictionary with LLM stats including calls, success rate, etc.
+        """
+        stats = self.llm_reasoner.get_stats()
+
+        # Add recommendation-specific stats
+        total_results = len(self._recommendation_results)
+        llm_used = sum(1 for r in self._recommendation_results if r.used_llm)
+        rule_fallback = sum(1 for r in self._recommendation_results if r.used_rule_fallback)
+
+        stats['recommendation_stats'] = {
+            'total_recommendations': total_results,
+            'llm_recommendations': llm_used,
+            'rule_fallback_recommendations': rule_fallback,
+            'llm_usage_rate': llm_used / total_results if total_results > 0 else 0.0
+        }
+
+        return stats
 
     async def prioritize_all(self) -> Dict[str, any]:
         """Prioritize all unprocessed recommendations."""
@@ -530,7 +963,10 @@ class StrategistAgent(AgentContract):
     async def health_check(self) -> AgentHealth:
         """Check agent health."""
         uptime = (datetime.now() - self._start_time).total_seconds() if self._start_time else 0
-        
+
+        # Get LLM stats
+        llm_stats = self.get_llm_stats()
+
         return AgentHealth(
             agent_id=self.agent_id,
             status=self.status,
@@ -541,7 +977,8 @@ class StrategistAgent(AgentContract):
             memory_usage_mb=100.0,
             cpu_percent=10.0,
             metadata={
-                'recommendations_generated': len(self._recommendations)
+                'recommendations_generated': len(self._recommendations),
+                'llm_stats': llm_stats
             }
         )
 
