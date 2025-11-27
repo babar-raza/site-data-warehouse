@@ -2,16 +2,12 @@
 
 # Properties to extract
 properties:
-  - url: https://example.com/
-    ga4_property_id: "12345678"
-  
-  # Add more properties as needed
-  # - url: https://another-site.com/
-  #   ga4_property_id: "87654321"
+  - url: https://aspose.net/
+    ga4_property_id: "475105521"
 
 # Extraction settings
 extraction:
-  default_days_back: 30  # How far back to extract on first run
+  default_days_back: 60  # How far back to extract on first run
   rate_limit_qps: 10     # Max API queries per second (GA4 limit is 10)
   batch_size: 1000       # Rows per batch insert
 

@@ -75,6 +75,16 @@ class GSCAPIIngestor:
         if self.initial_backfill_days <= 0:
             raise ValueError("GSC_INITIAL_BACKFILL_DAYS must be a positive integer")
 
+        # GSC data availability delay threshold (in days)
+        # GSC typically has 2-3 day data delay. Only advance watermark for dates
+        # older than this threshold when no data is returned, to prevent gaps.
+        try:
+            self.gsc_data_delay_days: int = int(config.get('GSC_DATA_DELAY_DAYS', 4))
+        except (TypeError, ValueError):
+            self.gsc_data_delay_days = 4
+        if self.gsc_data_delay_days < 1:
+            self.gsc_data_delay_days = 4
+
         
     def connect_gsc(self) -> None:
         """Initialize Google Search Console service"""
@@ -473,8 +483,28 @@ class GSCAPIIngestor:
                     self.update_watermark(property, current_date, rows_processed)
 
                 else:
-                    # Even if no rows returned, update watermark to indicate the date was processed
-                    self.update_watermark(property, current_date, 0)
+                    # GSC has a 2-3 day data delay. Only advance watermark for dates
+                    # that are old enough that data SHOULD be available.
+                    # This prevents gaps where watermarks advance but no data exists.
+                    days_old = (date.today() - current_date).days
+
+                    if days_old >= self.gsc_data_delay_days:
+                        # Date is old enough - GSC should have data. If empty, it's genuinely empty.
+                        self.update_watermark(property, current_date, 0)
+                        logger.info(
+                            f"No data for {property} on {current_date} "
+                            f"(confirmed empty - {days_old} days old, threshold: {self.gsc_data_delay_days})"
+                        )
+                    else:
+                        # Date is too recent - GSC may not have data yet. Don't advance watermark.
+                        logger.warning(
+                            f"No data for {property} on {current_date} yet "
+                            f"({days_old} days old, below {self.gsc_data_delay_days}-day threshold) - will retry later"
+                        )
+                        # Stop processing more recent dates for this property since they
+                        # will also likely be unavailable. We'll pick up from here next run.
+                        stats['days_processed'] += 1
+                        break
 
                 # Move to next day
                 current_date += timedelta(days=1)
@@ -646,7 +676,9 @@ def main():
         'BACKOFF_JITTER': os.getenv('BACKOFF_JITTER', 'true'),
         'INGEST_DAYS': os.getenv('INGEST_DAYS', '30'),
         # Initial backfill configuration (defaults to ~16 months)
-        'GSC_INITIAL_BACKFILL_DAYS': os.getenv('GSC_INITIAL_BACKFILL_DAYS', '480')
+        'GSC_INITIAL_BACKFILL_DAYS': os.getenv('GSC_INITIAL_BACKFILL_DAYS', '480'),
+        # GSC data delay threshold - only advance watermark for empty dates older than this
+        'GSC_DATA_DELAY_DAYS': os.getenv('GSC_DATA_DELAY_DAYS', '4')
     }
     
     # Run ingestor

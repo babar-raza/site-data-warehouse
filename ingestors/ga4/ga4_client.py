@@ -131,7 +131,7 @@ class GA4Client:
         Returns:
             List of dicts with page metrics
         """
-        dimensions = ['date', 'pagePath']
+        dimensions = ['date', 'hostName', 'pagePath']
         metrics = [
             'sessions',
             'engagedSessions',
@@ -178,7 +178,8 @@ class GA4Client:
             for row in response.rows:
                 data = {
                     'date': row.dimension_values[0].value,
-                    'page_path': row.dimension_values[1].value,
+                    'host_name': row.dimension_values[1].value,
+                    'page_path': row.dimension_values[2].value,
                     'sessions': int(row.metric_values[0].value) if row.metric_values[0].value else 0,
                     'engaged_sessions': int(row.metric_values[1].value) if row.metric_values[1].value else 0,
                     'engagement_rate': float(row.metric_values[2].value) if row.metric_values[2].value else 0.0,

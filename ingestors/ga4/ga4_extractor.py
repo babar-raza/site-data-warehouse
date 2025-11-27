@@ -144,7 +144,7 @@ class GA4Extractor:
                 rows = [
                     (
                         row['date'],
-                        property_url,
+                        'https://' + row['host_name'] + '/',  # Use actual hostname from GA4 API
                         row['page_path'],
                         row['sessions'],
                         row['engaged_sessions'],
@@ -185,7 +185,7 @@ class GA4Extractor:
             
             conn.commit()
             self.stats['rows_inserted'] += len(data)
-            logger.info(f"Upserted {len(data)} rows for {property_url}")
+            logger.info(f"Upserted {len(data)} rows from GA4 API")
         except Exception as e:
             conn.rollback()
             logger.error(f"Failed to upsert data: {e}")
