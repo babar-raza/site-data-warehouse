@@ -32,7 +32,6 @@ service_account*.json
 gsc_sa.json
 ga4_sa.json
 **/gsc-*.json
-!grafana/provisioning/dashboards/gsc-overview.json
 db_password*
 api_key*
 secret*
