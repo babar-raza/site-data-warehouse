@@ -25,20 +25,21 @@ CREATE VIEW gsc.vw_unified_page_performance AS
 WITH 
 -- Step 1: Aggregate GSC data by page and date (rollup device/country/query)
 gsc_aggregated AS (
-    SELECT 
+    SELECT
         date,
         property,
-        url as page_path,
+        -- Extract path from full URL: 'https://blog.aspose.net/path/' -> '/path/'
+        REGEXP_REPLACE(url, '^https?://[^/]+', '') as page_path,
         SUM(clicks) as clicks,
         SUM(impressions) as impressions,
-        CASE 
-            WHEN SUM(impressions) > 0 THEN 
+        CASE
+            WHEN SUM(impressions) > 0 THEN
                 ROUND((SUM(clicks)::NUMERIC / SUM(impressions)) * 100, 2)
-            ELSE 0 
+            ELSE 0
         END as ctr,
         ROUND(AVG(position), 2) as avg_position
     FROM gsc.fact_gsc_daily
-    GROUP BY date, property, url
+    GROUP BY date, property, REGEXP_REPLACE(url, '^https?://[^/]+', '')
 ),
 
 -- Step 2: Join GSC and GA4 data
