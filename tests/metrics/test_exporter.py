@@ -258,17 +258,241 @@ exporter:
         assert config == {}
 
 
+class TestGA4MetricsCollection:
+    """Test GA4 metrics collection"""
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_ga4_metrics_success(self, mock_connect):
+        """Test successful GA4 metrics collection"""
+        from metrics_exporter.exporter import MetricsCollector
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Mock database responses
+        mock_cursor.fetchone.side_effect = [
+            {'exists': True},  # Table exists
+            {'total': 5000},  # Total rows
+            {'pages': 100},  # Unique pages
+            {'total_sessions': 2500},  # Total sessions
+        ]
+        mock_cursor.fetchall.return_value = [
+            {'property': 'https://example.com/', 'latest_date': date(2025, 1, 15), 'days_behind': 1}
+        ]
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_ga4_metrics()
+
+        # Verify queries were executed
+        assert mock_cursor.execute.call_count >= 4
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_ga4_metrics_table_not_exists(self, mock_connect):
+        """Test GA4 metrics when table doesn't exist"""
+        from metrics_exporter.exporter import MetricsCollector, ga4_ingestor_status
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Table doesn't exist
+        mock_cursor.fetchone.return_value = {'exists': False}
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_ga4_metrics()
+
+        # Status should be set to 0
+        assert ga4_ingestor_status._value._value == 0
+
+
+class TestSERPMetricsCollection:
+    """Test SERP metrics collection"""
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_serp_metrics_success(self, mock_connect):
+        """Test successful SERP metrics collection"""
+        from metrics_exporter.exporter import MetricsCollector
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Mock database responses
+        mock_cursor.fetchone.side_effect = [
+            {'exists': True},  # Schema exists
+            {'exists': True},  # Queries table exists
+            {'total': 25},  # Total queries
+            {'active': 20},  # Active queries
+            {'exists': True},  # Position history table exists
+            {'total': 500},  # Total position records
+            {'days_behind': 1},  # Freshness
+            {'avg_pos': 12.5},  # Average position
+            {'top10': 8},  # Top 10 count
+            {'not_ranking': 5},  # Not ranking count
+        ]
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_serp_metrics()
+
+        # Verify queries were executed
+        assert mock_cursor.execute.call_count >= 5
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_serp_metrics_schema_not_exists(self, mock_connect):
+        """Test SERP metrics when schema doesn't exist"""
+        from metrics_exporter.exporter import MetricsCollector, serp_ingestor_status
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Schema doesn't exist
+        mock_cursor.fetchone.return_value = {'exists': False}
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_serp_metrics()
+
+        # Status should be set to 0
+        assert serp_ingestor_status._value._value == 0
+
+
+class TestCWVMetricsCollection:
+    """Test CWV metrics collection"""
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_cwv_metrics_success(self, mock_connect):
+        """Test successful CWV metrics collection"""
+        from metrics_exporter.exporter import MetricsCollector
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Mock database responses
+        mock_cursor.fetchone.side_effect = [
+            {'exists': True},  # Performance schema exists
+            {'exists': True},  # Monitored pages table exists
+            {'monitored': 50},  # Pages monitored
+            {'exists': True},  # Core web vitals table exists
+            {'total': 200},  # Total checks
+            {'days_behind': 1},  # Freshness
+            # Mobile metrics
+            {'avg_score': 75.5, 'avg_lcp': 2.3, 'avg_cls': 0.08, 'pass_count': 40, 'total': 50, 'poor_count': 5},
+            # Desktop metrics
+            {'avg_score': 85.0, 'avg_lcp': 1.5, 'avg_cls': 0.05, 'pass_count': 45, 'total': 50, 'poor_count': 2},
+        ]
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_cwv_metrics()
+
+        # Verify queries were executed
+        assert mock_cursor.execute.call_count >= 5
+
+    @patch('metrics_exporter.exporter.psycopg2.connect')
+    def test_collect_cwv_metrics_schema_not_exists(self, mock_connect):
+        """Test CWV metrics when schema doesn't exist"""
+        from metrics_exporter.exporter import MetricsCollector, cwv_ingestor_status
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connect.return_value = mock_conn
+        mock_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = Mock(return_value=False)
+
+        # Schema doesn't exist
+        mock_cursor.fetchone.return_value = {'exists': False}
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json")
+        collector.collect_cwv_metrics()
+
+        # Status should be set to 0
+        assert cwv_ingestor_status._value._value == 0
+
+
+class TestCSEMetricsCollection:
+    """Test CSE metrics collection"""
+
+    @patch('metrics_exporter.exporter.os.path.exists')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_collect_cse_metrics_success(self, mock_file, mock_exists):
+        """Test successful CSE metrics collection"""
+        from metrics_exporter.exporter import MetricsCollector, cse_queries_today, cse_quota_remaining
+
+        mock_exists.return_value = True
+
+        cse_data = {
+            'daily_quota': 100,
+            'queries_today': 25,
+            'remaining': 75
+        }
+
+        mock_file.return_value.read.return_value = json.dumps(cse_data)
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json", "/tmp/cse_metrics.json")
+        collector.collect_cse_metrics()
+
+        # Verify metrics were set
+        assert cse_queries_today._value._value == 25
+        assert cse_quota_remaining._value._value == 75
+
+    @patch('metrics_exporter.exporter.os.path.exists')
+    def test_collect_cse_metrics_file_not_exists(self, mock_exists):
+        """Test CSE metrics when file doesn't exist (should use defaults)"""
+        from metrics_exporter.exporter import MetricsCollector, cse_daily_quota, cse_queries_today, cse_quota_remaining
+
+        mock_exists.return_value = False
+
+        collector = MetricsCollector("test_dsn", "/tmp/metrics.json", "/tmp/cse_metrics.json")
+        collector.collect_cse_metrics()
+
+        # Should use default values
+        assert cse_daily_quota._value._value == 100
+        assert cse_queries_today._value._value == 0
+        assert cse_quota_remaining._value._value == 100
+
+
 class TestMetricsEndpoint:
     """Test metrics endpoint functionality"""
-    
+
     def test_prometheus_metrics_format(self):
         """Test that metrics are in Prometheus format"""
         from metrics_exporter.exporter import warehouse_up, fact_table_rows
-        
+
         # Set some test values
         warehouse_up.set(1)
         fact_table_rows.set(1000)
-        
+
         # Metrics should be set
         assert warehouse_up._value._value == 1
         assert fact_table_rows._value._value == 1000
+
+    def test_new_ingestor_metrics_exist(self):
+        """Test that all new ingestor metrics are defined"""
+        from metrics_exporter.exporter import (
+            ga4_fact_table_rows, ga4_data_freshness_days, ga4_ingestor_status,
+            serp_queries_total, serp_queries_active, serp_ingestor_status,
+            cwv_pages_monitored, cwv_checks_total, cwv_ingestor_status,
+            cse_queries_today, cse_quota_remaining, cse_daily_quota
+        )
+
+        # Verify all metrics are importable and settable
+        ga4_fact_table_rows.set(0)
+        serp_queries_total.set(0)
+        cwv_pages_monitored.set(0)
+        cse_queries_today.set(0)
+
+        assert ga4_fact_table_rows._value._value == 0
+        assert serp_queries_total._value._value == 0
+        assert cwv_pages_monitored._value._value == 0
+        assert cse_queries_today._value._value == 0

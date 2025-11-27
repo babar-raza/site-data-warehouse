@@ -1,0 +1,43 @@
+# Prometheus Configuration for Test Environment
+# Minimal configuration for testing purposes
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    environment: 'test'
+    cluster: 'gsc-test'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # PostgreSQL metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['test_postgres_exporter:9187']
+        labels:
+          service: 'postgresql'
+          instance: 'test_warehouse'
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['test_redis_exporter:9121']
+        labels:
+          service: 'redis'
+          instance: 'test_redis'
+
+  # Application metrics
+  - job_name: 'metrics_exporter'
+    static_configs:
+      - targets: ['test_metrics_exporter:8002']
+        labels:
+          service: 'app_metrics'
+          instance: 'test_metrics'
