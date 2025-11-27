@@ -36,9 +36,9 @@ echo "Starting scheduler (API ingestion will run daily at 02:00 UTC)..."
 docker compose --profile scheduler up -d scheduler
 
 echo ""
-echo "Starting optional services..."
+echo "Starting API services..."
 docker compose --profile api up -d insights_api
-docker compose --profile observability up -d metrics_exporter prometheus
+# Note: Prometheus, Grafana, and metrics_exporter start automatically
 
 echo ""
 echo "========================================"
@@ -49,8 +49,9 @@ echo "Services running:"
 echo "  - Warehouse: localhost:5432"
 echo "  - MCP Server: localhost:8000"
 echo "  - Insights API: localhost:8001"
-echo "  - Metrics: localhost:9090"
-echo "  - Prometheus: localhost:9091"
+echo "  - Prometheus: localhost:9090"
+echo "  - Grafana: localhost:3000"
+echo "  - Metrics Exporter: localhost:8002"
 echo ""
 echo "Data collection: Last 16 months via API"
 echo "Schedule: Daily updates at 02:00 UTC"

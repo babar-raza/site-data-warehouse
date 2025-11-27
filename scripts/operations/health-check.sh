@@ -33,20 +33,20 @@ else
     echo "  [WAREHOUSE] ❌ Not responding"
 fi
 
-# Check MCP Server
-echo "Checking MCP Server..."
-if curl -s -f http://localhost:8000/health > /dev/null 2>&1; then
-    echo "  [MCP SERVER] ✓ Healthy"
-else
-    echo "  [MCP SERVER] ❌ Not responding"
-fi
-
 # Check Insights API
 echo "Checking Insights API..."
-if curl -s -f http://localhost:8001/api/health > /dev/null 2>&1; then
+if curl -s -f http://localhost:8000/api/health > /dev/null 2>&1; then
     echo "  [INSIGHTS API] ✓ Healthy"
 else
     echo "  [INSIGHTS API] ⚠ Not running or not healthy (optional service)"
+fi
+
+# Check MCP Server
+echo "Checking MCP Server..."
+if curl -s -f http://localhost:8001/health > /dev/null 2>&1; then
+    echo "  [MCP SERVER] ✓ Healthy"
+else
+    echo "  [MCP SERVER] ❌ Not responding"
 fi
 
 # Check Metrics Exporter
@@ -59,10 +59,18 @@ fi
 
 # Check Prometheus
 echo "Checking Prometheus..."
-if curl -s -f http://localhost:9091/-/healthy > /dev/null 2>&1; then
+if curl -s -f http://localhost:9090/-/healthy > /dev/null 2>&1; then
     echo "  [PROMETHEUS] ✓ Healthy"
 else
-    echo "  [PROMETHEUS] ⚠ Not running or not healthy (optional service)"
+    echo "  [PROMETHEUS] ❌ Not responding"
+fi
+
+# Check Grafana
+echo "Checking Grafana..."
+if curl -s -f http://localhost:3000/api/health > /dev/null 2>&1; then
+    echo "  [GRAFANA] ✓ Healthy"
+else
+    echo "  [GRAFANA] ❌ Not responding"
 fi
 
 echo ""

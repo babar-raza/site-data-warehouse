@@ -38,22 +38,22 @@ if errorlevel 1 (
     echo   [WAREHOUSE] ✓ Healthy
 )
 
-REM Check MCP Server
-echo Checking MCP Server...
-curl -s -f http://localhost:8000/health >nul 2>&1
-if errorlevel 1 (
-    echo   [MCP SERVER] ❌ Not responding
-) else (
-    echo   [MCP SERVER] ✓ Healthy
-)
-
 REM Check Insights API
 echo Checking Insights API...
-curl -s -f http://localhost:8001/api/health >nul 2>&1
+curl -s -f http://localhost:8000/api/health >nul 2>&1
 if errorlevel 1 (
     echo   [INSIGHTS API] ⚠ Not running or not healthy ^(optional service^)
 ) else (
     echo   [INSIGHTS API] ✓ Healthy
+)
+
+REM Check MCP Server
+echo Checking MCP Server...
+curl -s -f http://localhost:8001/health >nul 2>&1
+if errorlevel 1 (
+    echo   [MCP SERVER] ❌ Not responding
+) else (
+    echo   [MCP SERVER] ✓ Healthy
 )
 
 REM Check Metrics Exporter
@@ -67,11 +67,20 @@ if errorlevel 1 (
 
 REM Check Prometheus
 echo Checking Prometheus...
-curl -s -f http://localhost:9091/-/healthy >nul 2>&1
+curl -s -f http://localhost:9090/-/healthy >nul 2>&1
 if errorlevel 1 (
-    echo   [PROMETHEUS] ⚠ Not running or not healthy ^(optional service^)
+    echo   [PROMETHEUS] ❌ Not responding
 ) else (
     echo   [PROMETHEUS] ✓ Healthy
+)
+
+REM Check Grafana
+echo Checking Grafana...
+curl -s -f http://localhost:3000/api/health >nul 2>&1
+if errorlevel 1 (
+    echo   [GRAFANA] ❌ Not responding
+) else (
+    echo   [GRAFANA] ✓ Healthy
 )
 
 echo.

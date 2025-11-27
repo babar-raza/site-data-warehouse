@@ -47,7 +47,7 @@ echo.
 echo Step 5: Starting continuous services...
 docker compose --profile scheduler up -d scheduler
 docker compose --profile api up -d insights_api
-docker compose --profile observability up -d metrics_exporter prometheus
+REM Note: Prometheus, Grafana, and metrics_exporter start automatically with docker-compose up
 
 echo.
 echo ========================================
@@ -58,8 +58,9 @@ echo Services available:
 echo   - Warehouse: localhost:5432
 echo   - MCP Server: localhost:8000
 echo   - Insights API: localhost:8001
-echo   - Metrics: localhost:9090
-echo   - Prometheus: localhost:9091
+echo   - Prometheus: localhost:9090
+echo   - Grafana: localhost:3000
+echo   - Metrics Exporter: localhost:8002
 echo.
 echo The scheduler will now run:
 echo   - Daily ingestion at 02:00 UTC

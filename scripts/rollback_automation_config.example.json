@@ -1,0 +1,74 @@
+{
+  "health_check": {
+    "failure_threshold": 3,
+    "check_interval": 30,
+    "timeout": 10,
+    "warning_threshold": 2
+  },
+  "endpoints": [
+    {
+      "name": "insights_api",
+      "url": "http://localhost:8000/api/health",
+      "type": "http",
+      "critical": true
+    },
+    {
+      "name": "mcp",
+      "url": "http://localhost:8001/health",
+      "type": "http",
+      "critical": true
+    },
+    {
+      "name": "metrics_exporter",
+      "url": "http://localhost:8002/metrics",
+      "type": "http",
+      "critical": false
+    },
+    {
+      "name": "grafana",
+      "url": "http://localhost:3000/api/health",
+      "type": "http",
+      "critical": false
+    },
+    {
+      "name": "prometheus",
+      "url": "http://localhost:9090/-/healthy",
+      "type": "http",
+      "critical": false
+    },
+    {
+      "name": "warehouse",
+      "url": "postgresql://gsc_user:gsc_pass@localhost:5432/gsc_db",
+      "type": "postgres",
+      "critical": true
+    },
+    {
+      "name": "scheduler",
+      "url": "",
+      "type": "docker",
+      "critical": true
+    },
+    {
+      "name": "api_ingestor",
+      "url": "",
+      "type": "docker",
+      "critical": true
+    },
+    {
+      "name": "ga4_ingestor",
+      "url": "",
+      "type": "docker",
+      "critical": true
+    }
+  ],
+  "rollback": {
+    "backup_images": true,
+    "max_rollback_attempts": 3,
+    "post_rollback_wait": 60
+  },
+  "notifications": {
+    "enabled": false,
+    "slack_webhook": "",
+    "email_recipients": []
+  }
+}
