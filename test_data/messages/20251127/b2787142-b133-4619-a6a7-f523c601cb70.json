@@ -1,0 +1,14 @@
+{
+  "message_id": "b2787142-b133-4619-a6a7-f523c601cb70",
+  "topic": "anomaly.detected",
+  "sender_id": "watcher_integration_test",
+  "payload": {
+    "finding_id": 1,
+    "page_path": "/blog/test-article"
+  },
+  "timestamp": "2025-11-27T13:32:18.925910",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "pipeline-001",
+  "metadata": {}
+}

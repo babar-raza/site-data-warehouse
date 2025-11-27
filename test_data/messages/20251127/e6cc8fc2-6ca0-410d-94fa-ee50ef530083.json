@@ -1,0 +1,15 @@
+{
+  "message_id": "e6cc8fc2-6ca0-410d-94fa-ee50ef530083",
+  "topic": "diagnosis.failed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "finding_id": 1,
+    "error": "Insufficient data for analysis",
+    "can_retry": false
+  },
+  "timestamp": "2025-11-27T13:32:20.036574",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "failure-test-001",
+  "metadata": {}
+}

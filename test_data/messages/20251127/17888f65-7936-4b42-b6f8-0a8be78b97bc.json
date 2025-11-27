@@ -1,0 +1,13 @@
+{
+  "message_id": "17888f65-7936-4b42-b6f8-0a8be78b97bc",
+  "topic": "agent.processing",
+  "sender_id": "watcher_integration_test",
+  "payload": {
+    "task": "anomaly_detection"
+  },
+  "timestamp": "2025-11-27T13:30:58.053274",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

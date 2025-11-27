@@ -1,0 +1,14 @@
+{
+  "message_id": "ad60a402-02c6-4050-a167-9ea1bdc477d7",
+  "topic": "agent.state_change",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "status": "waiting",
+    "waiting_for": "watcher_results"
+  },
+  "timestamp": "2025-11-27T13:32:21.690083",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

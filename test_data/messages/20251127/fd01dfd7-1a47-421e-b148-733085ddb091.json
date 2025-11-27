@@ -1,0 +1,13 @@
+{
+  "message_id": "fd01dfd7-1a47-421e-b148-733085ddb091",
+  "topic": "recommendation.failed",
+  "sender_id": "strategist_integration_test",
+  "payload": {
+    "error": "No diagnosis available"
+  },
+  "timestamp": "2025-11-27T13:30:42.982244",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "cascade-001",
+  "metadata": {}
+}

@@ -1,0 +1,15 @@
+{
+  "message_id": "5c3aafd0-1266-49c9-81d4-debf81eb9223",
+  "topic": "diagnosis.completed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "diagnosis_id": 1,
+    "finding_id": 1,
+    "root_cause": "traffic_drop"
+  },
+  "timestamp": "2025-11-27T13:30:05.110802",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "anomaly-diagnosis-001",
+  "metadata": {}
+}

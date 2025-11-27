@@ -1,0 +1,13 @@
+{
+  "message_id": "b9d24a9a-4c61-4e0d-b03d-0ef0bfe5aee8",
+  "topic": "priority.test",
+  "sender_id": "sender",
+  "payload": {
+    "id": 2
+  },
+  "timestamp": "2025-11-27T13:32:17.874333",
+  "priority": 10,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

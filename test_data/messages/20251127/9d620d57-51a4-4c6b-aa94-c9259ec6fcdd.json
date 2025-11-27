@@ -1,0 +1,15 @@
+{
+  "message_id": "9d620d57-51a4-4c6b-aa94-c9259ec6fcdd",
+  "topic": "agent.error",
+  "sender_id": "watcher_integration_test",
+  "payload": {
+    "error": "Database connection failed",
+    "agent": "watcher",
+    "severity": "critical"
+  },
+  "timestamp": "2025-11-27T13:32:19.807104",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

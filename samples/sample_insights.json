@@ -1,0 +1,54 @@
+{
+  "description": "Expected insights from sample data",
+  "scenarios": [
+    {
+      "name": "Traffic Drop - /product/shoes",
+      "entity_type": "page",
+      "entity_id": "/product/shoes",
+      "category": "risk",
+      "severity": "high",
+      "confidence": 0.85,
+      "reason": "Correlated drop in GSC clicks (-25%) and GA4 conversions (-42%) starting 2024-11-08",
+      "metrics": {
+        "gsc_clicks_change_wow": -25.0,
+        "ga_conversions_change_wow": -42.0,
+        "position_change": 4.3
+      }
+    },
+    {
+      "name": "Opportunity - /blog/seo-guide",
+      "entity_type": "page",
+      "entity_id": "/blog/seo-guide",
+      "category": "opportunity",
+      "severity": "medium",
+      "confidence": 0.75,
+      "reason": "Impression spike (+125%) with low CTR (1.1%) - opportunity to improve",
+      "metrics": {
+        "gsc_impressions_change_wow": 125.0,
+        "gsc_ctr": 0.011,
+        "opportunity_index": 0.82
+      }
+    },
+    {
+      "name": "Ranking Issue Diagnosis",
+      "entity_type": "page",
+      "entity_id": "/product/shoes",
+      "category": "diagnosis",
+      "severity": "high",
+      "confidence": 0.80,
+      "reason": "Position dropped from 8.2 to 12.8 correlating with traffic drop",
+      "linked_to": "Traffic Drop - /product/shoes"
+    }
+  ],
+  "validation_rules": {
+    "description": "Tests should verify structure, not exact strings",
+    "checks": [
+      "At least 1 risk insight exists",
+      "At least 1 opportunity insight exists",
+      "Risk insight has severity='high' and metrics.gsc_clicks_change_wow < -20",
+      "Opportunity insight has category='opportunity' and metrics.gsc_impressions_change_wow > 50",
+      "Insights have valid confidence scores (0.0-1.0)",
+      "Deterministic IDs are generated consistently"
+    ]
+  }
+}

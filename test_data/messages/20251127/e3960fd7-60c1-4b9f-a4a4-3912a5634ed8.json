@@ -1,0 +1,14 @@
+{
+  "message_id": "e3960fd7-60c1-4b9f-a4a4-3912a5634ed8",
+  "topic": "anomaly.detected",
+  "sender_id": "watcher_integration_test",
+  "payload": {
+    "finding_id": 1,
+    "severity": "high"
+  },
+  "timestamp": "2025-11-27T13:32:18.465450",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "anomaly-diagnosis-001",
+  "metadata": {}
+}

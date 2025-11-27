@@ -1,0 +1,14 @@
+{
+  "message_id": "a475965c-aee7-41ab-b34b-469092afd113",
+  "topic": "diagnosis.completed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "diagnosis_id": 1,
+    "finding_id": 1
+  },
+  "timestamp": "2025-11-27T13:32:18.932890",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "pipeline-001",
+  "metadata": {}
+}

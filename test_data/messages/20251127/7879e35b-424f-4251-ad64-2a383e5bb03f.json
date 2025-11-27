@@ -1,0 +1,13 @@
+{
+  "message_id": "7879e35b-424f-4251-ad64-2a383e5bb03f",
+  "topic": "test.topic",
+  "sender_id": "agent_002",
+  "payload": {
+    "test": "data"
+  },
+  "timestamp": "2025-11-27T13:30:39.749689",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

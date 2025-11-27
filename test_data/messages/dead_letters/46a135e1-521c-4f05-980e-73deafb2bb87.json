@@ -1,0 +1,15 @@
+{
+  "message_id": "46a135e1-521c-4f05-980e-73deafb2bb87",
+  "topic": "slow.topic",
+  "sender_id": "sender",
+  "payload": {
+    "data": "test"
+  },
+  "timestamp": "2025-11-27T13:30:59.355551",
+  "priority": 0,
+  "ttl_seconds": 0,
+  "correlation_id": null,
+  "metadata": {},
+  "dead_letter_reason": "expired",
+  "dead_letter_timestamp": "2025-11-27T13:30:59.362533"
+}

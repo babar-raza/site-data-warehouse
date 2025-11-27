@@ -1,0 +1,13 @@
+{
+  "message_id": "2ededd2b-6553-439e-a48e-6af8c49cd7eb",
+  "topic": "agent.processing",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "task": "root_cause_analysis"
+  },
+  "timestamp": "2025-11-27T13:30:43.298384",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

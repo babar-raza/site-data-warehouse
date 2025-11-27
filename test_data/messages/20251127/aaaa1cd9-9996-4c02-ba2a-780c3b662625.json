@@ -1,0 +1,13 @@
+{
+  "message_id": "aaaa1cd9-9996-4c02-ba2a-780c3b662625",
+  "topic": "anomaly.classified",
+  "sender_id": "diagnostician",
+  "payload": {
+    "id": 2
+  },
+  "timestamp": "2025-11-27T13:30:54.964401",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

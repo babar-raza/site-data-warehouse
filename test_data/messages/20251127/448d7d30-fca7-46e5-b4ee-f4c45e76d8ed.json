@@ -1,0 +1,13 @@
+{
+  "message_id": "448d7d30-fca7-46e5-b4ee-f4c45e76d8ed",
+  "topic": "ordered.messages",
+  "sender_id": "sender",
+  "payload": {
+    "sequence": 0
+  },
+  "timestamp": "2025-11-27T13:30:58.383681",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

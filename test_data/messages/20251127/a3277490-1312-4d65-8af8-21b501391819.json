@@ -1,0 +1,16 @@
+{
+  "message_id": "a3277490-1312-4d65-8af8-21b501391819",
+  "topic": "diagnosis.retry",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "finding_id": 1,
+    "attempt": 1,
+    "max_attempts": 3,
+    "reason": "Temporary LLM unavailability"
+  },
+  "timestamp": "2025-11-27T13:32:20.275459",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

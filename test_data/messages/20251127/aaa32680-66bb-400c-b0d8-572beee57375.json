@@ -1,0 +1,16 @@
+{
+  "message_id": "aaa32680-66bb-400c-b0d8-572beee57375",
+  "topic": "diagnosis.completed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "diagnosis_id": 1,
+    "finding_id": 1,
+    "root_cause": "traffic_drop",
+    "confidence": 0.85
+  },
+  "timestamp": "2025-11-27T13:32:18.692034",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

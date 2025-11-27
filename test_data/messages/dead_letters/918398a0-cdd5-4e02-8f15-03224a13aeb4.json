@@ -1,0 +1,15 @@
+{
+  "message_id": "918398a0-cdd5-4e02-8f15-03224a13aeb4",
+  "topic": "fail.topic",
+  "sender_id": "sender",
+  "payload": {
+    "data": "test"
+  },
+  "timestamp": "2025-11-27T13:30:55.499547",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {},
+  "dead_letter_reason": "handler_exception: Handler failed",
+  "dead_letter_timestamp": "2025-11-27T13:30:55.505942"
+}

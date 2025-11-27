@@ -1,0 +1,15 @@
+{
+  "message_id": "58000307-5017-4c8d-ba04-ee526cbd7863",
+  "topic": "execution.completed",
+  "sender_id": "dispatcher_integration_test",
+  "payload": {
+    "execution_id": 1,
+    "recommendation_id": 1,
+    "success": true
+  },
+  "timestamp": "2025-11-27T13:30:56.228948",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "pipeline-001",
+  "metadata": {}
+}

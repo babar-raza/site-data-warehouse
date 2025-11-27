@@ -1,0 +1,19 @@
+{
+  "message_id": "6cab3ba2-1913-4a1c-becc-a96c1a885868",
+  "topic": "recommendations.generated",
+  "sender_id": "strategist_integration_test",
+  "payload": {
+    "diagnosis_id": 1,
+    "recommendations": [
+      {
+        "priority": 1,
+        "type": "emergency_fix"
+      }
+    ]
+  },
+  "timestamp": "2025-11-27T13:32:18.712795",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

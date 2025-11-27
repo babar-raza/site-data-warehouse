@@ -1,0 +1,14 @@
+{
+  "message_id": "67645f5f-4d93-4e44-bab1-ee89a06566bc",
+  "topic": "execution.started",
+  "sender_id": "dispatcher_integration_test",
+  "payload": {
+    "recommendation_id": 3,
+    "execution_id": 3
+  },
+  "timestamp": "2025-11-27T13:32:19.483907",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

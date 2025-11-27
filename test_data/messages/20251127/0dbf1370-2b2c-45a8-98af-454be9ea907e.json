@@ -1,0 +1,14 @@
+{
+  "message_id": "0dbf1370-2b2c-45a8-98af-454be9ea907e",
+  "topic": "agent.state_change",
+  "sender_id": "watcher_integration_test",
+  "payload": {
+    "status": "processing",
+    "current_task": "anomaly_detection"
+  },
+  "timestamp": "2025-11-27T13:30:58.923739",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

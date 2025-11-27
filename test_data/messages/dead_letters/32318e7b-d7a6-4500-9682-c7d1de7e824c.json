@@ -1,0 +1,15 @@
+{
+  "message_id": "32318e7b-d7a6-4500-9682-c7d1de7e824c",
+  "topic": "strict.topic",
+  "sender_id": "sender",
+  "payload": {
+    "wrong_field": "value"
+  },
+  "timestamp": "2025-11-27T13:30:44.388095",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {},
+  "dead_letter_reason": "handler_exception: Missing required field",
+  "dead_letter_timestamp": "2025-11-27T13:30:44.393160"
+}

@@ -1,0 +1,13 @@
+{
+  "message_id": "87306b5e-7c84-4f6c-a35c-a7f5b9649ae3",
+  "topic": "fail.topic",
+  "sender_id": "sender",
+  "payload": {
+    "data": "test"
+  },
+  "timestamp": "2025-11-27T13:32:18.193686",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

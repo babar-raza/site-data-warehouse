@@ -1,0 +1,13 @@
+{
+  "message_id": "a74ca9c8-b21b-4a32-a3a5-6a7befe07c74",
+  "topic": "agent.processing",
+  "sender_id": "strategist_integration_test",
+  "payload": {
+    "task": "recommendation_generation"
+  },
+  "timestamp": "2025-11-27T13:32:20.816405",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

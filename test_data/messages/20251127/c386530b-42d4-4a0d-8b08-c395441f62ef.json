@@ -1,0 +1,13 @@
+{
+  "message_id": "c386530b-42d4-4a0d-8b08-c395441f62ef",
+  "topic": "anomaly.detected",
+  "sender_id": "watcher",
+  "payload": {
+    "id": 1
+  },
+  "timestamp": "2025-11-27T13:30:40.180130",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

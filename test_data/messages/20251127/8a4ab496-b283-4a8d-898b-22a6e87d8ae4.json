@@ -1,0 +1,16 @@
+{
+  "message_id": "8a4ab496-b283-4a8d-898b-22a6e87d8ae4",
+  "topic": "recommendations.generated",
+  "sender_id": "strategist_integration_test",
+  "payload": {
+    "recommendation_ids": [
+      1
+    ],
+    "diagnosis_id": 1
+  },
+  "timestamp": "2025-11-27T13:30:41.436234",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "pipeline-001",
+  "metadata": {}
+}

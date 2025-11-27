@@ -1,0 +1,15 @@
+{
+  "message_id": "651f8025-0535-49bc-a685-b75ac3558b46",
+  "topic": "diagnosis.completed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "diagnosis_id": 1,
+    "severity": "critical",
+    "root_cause": "zero_traffic"
+  },
+  "timestamp": "2025-11-27T13:30:55.985045",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": null,
+  "metadata": {}
+}

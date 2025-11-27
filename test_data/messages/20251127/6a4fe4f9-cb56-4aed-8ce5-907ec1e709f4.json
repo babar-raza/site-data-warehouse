@@ -1,0 +1,13 @@
+{
+  "message_id": "6a4fe4f9-cb56-4aed-8ce5-907ec1e709f4",
+  "topic": "diagnosis.failed",
+  "sender_id": "diagnostician_integration_test",
+  "payload": {
+    "error": "No finding to diagnose"
+  },
+  "timestamp": "2025-11-27T13:30:42.977084",
+  "priority": 0,
+  "ttl_seconds": null,
+  "correlation_id": "cascade-001",
+  "metadata": {}
+}
