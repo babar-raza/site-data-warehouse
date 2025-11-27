@@ -1,0 +1,981 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "#3274D9",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "SERP position tracking - monitor keyword rankings from API and GSC sources, position changes, and competitor analysis",
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {"asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["seo"], "targetBlank": true, "title": "SEO Dashboards", "type": "dashboards"},
+    {"icon": "dashboard", "title": "GSC Overview", "type": "link", "url": "/d/gsc-overview", "targetBlank": true}
+  ],
+  "panels": [
+    {"id": 100, "title": "Position Overview", "type": "row", "gridPos": {"h": 1, "w": 24, "x": 0, "y": -1}, "collapsed": false},
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              },
+              {
+                "color": "#F2495C",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as \"Tracked Queries\"\nFROM serp.queries\nWHERE property = '$property'\n  AND is_active = true",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": ["*"],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "queries",
+          "timeColumn": "created_at",
+          "where": []
+        }
+      ],
+      "title": "Tracked Queries",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FADE2A",
+                "value": 4
+              },
+              {
+                "color": "#73BF69",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(position), 1) as \"Average Position\"\nFROM serp.vw_current_positions\nWHERE property = '$property'",
+          "refId": "A"
+        }
+      ],
+      "title": "Average Position",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              },
+              {
+                "color": "#FADE2A",
+                "value": 1
+              },
+              {
+                "color": "#F2495C",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as \"Position Drops\"\nFROM serp.vw_position_changes\nWHERE property = '$property'\n  AND position_gain < -2\n  AND latest_check >= CURRENT_DATE - INTERVAL '7 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "Position Drops (7d)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FADE2A",
+                "value": 1
+              },
+              {
+                "color": "#73BF69",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as \"Position Gains\"\nFROM serp.vw_position_changes\nWHERE property = '$property'\n  AND position_gain > 2\n  AND latest_check >= CURRENT_DATE - INTERVAL '7 days'",
+          "refId": "A"
+        }
+      ],
+      "title": "Position Gains (7d)",
+      "type": "stat"
+    },
+    {"id": 200, "title": "Data Source Overview", "type": "row", "gridPos": {"h": 1, "w": 24, "x": 0, "y": 4}, "collapsed": false},
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#56A64B", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 5},
+      "id": 201,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {}, "textMode": "auto"},
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as \"API Queries\"\nFROM serp.queries\nWHERE property = '$property'\n  AND is_active = true\n  AND COALESCE(data_source, 'manual') IN ('serpstack', 'valueserp', 'serpapi', 'manual')",
+          "refId": "A"
+        }
+      ],
+      "title": "API Queries",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#3274D9", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 5},
+      "id": 202,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {}, "textMode": "auto"},
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) as \"GSC Queries\"\nFROM serp.queries\nWHERE property = '$property'\n  AND is_active = true\n  AND data_source = 'gsc'",
+          "refId": "A"
+        }
+      ],
+      "title": "GSC Queries",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"hideFrom": {"legend": false, "tooltip": false, "viz": false}},
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 5},
+      "id": 203,
+      "options": {
+        "displayLabels": ["percent", "value"],
+        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+        "pieType": "donut",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN COALESCE(data_source, 'manual') IN ('serpstack', 'valueserp', 'serpapi', 'manual') THEN 'API'\n    WHEN data_source = 'gsc' THEN 'GSC'\n    ELSE 'Other'\n  END as source,\n  COUNT(*) as count\nFROM serp.queries\nWHERE property = '$property' AND is_active = true\nGROUP BY 1\nORDER BY count DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Queries by Source",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "displayMode": "auto"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}]}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Position Diff"}, "properties": [{"id": "custom.displayMode", "value": "color-background"}, {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 3}, {"color": "#F2495C", "value": 5}]}}]}
+        ]
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 5},
+      "id": 204,
+      "options": {"footer": {"fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  query_text as \"Query\",\n  gsc_position as \"GSC Pos\",\n  api_position as \"API Pos\",\n  ABS(COALESCE(api_position, 0) - COALESCE(gsc_position, 0)) as \"Position Diff\"\nFROM serp.vw_source_comparison\nWHERE property = '$property'\n  AND gsc_position IS NOT NULL\n  AND api_position IS NOT NULL\nORDER BY \"Position Diff\" DESC\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "GSC vs API Position Comparison",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Position",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["last", "min", "max"],
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "query_text",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ph.check_date as time,\n  q.query_text as metric,\n  AVG(ph.position) as value\nFROM serp.position_history ph\nJOIN serp.queries q ON ph.query_id = q.query_id\nWHERE q.property = '$property'\n  AND $__timeFilter(ph.check_date)\nGROUP BY ph.check_date, q.query_text\nORDER BY ph.check_date",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": ["position"],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "position_history",
+          "timeColumn": "check_date",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "title": "Position Trends (Top Queries)",
+      "type": "timeseries",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "(.*)",
+            "renamePattern": "$1"
+          }
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              },
+              {
+                "color": "#FADE2A",
+                "value": 4
+              },
+              {
+                "color": "#F2495C",
+                "value": 11
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Change"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#73BF69",
+                      "value": null
+                    },
+                    {
+                      "color": "#FADE2A",
+                      "value": -2
+                    },
+                    {
+                      "color": "#F2495C",
+                      "value": -5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "id": 6,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Position Change"
+          }
+        ]
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  query_text as \"Query\",\n  current_position as \"Current Position\",\n  week_ago_position as \"Previous Position\",\n  position_gain as \"Position Change\",\n  latest_check as \"Date\"\nFROM serp.vw_position_changes\nWHERE property = '$property'\n  AND position_gain < 0\nORDER BY position_gain ASC\nLIMIT 20",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": ["*"],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "vw_position_changes",
+          "timeColumn": "check_date",
+          "where": []
+        }
+      ],
+      "title": "Biggest Position Drops",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F2495C",
+                "value": null
+              },
+              {
+                "color": "#FADE2A",
+                "value": 4
+              },
+              {
+                "color": "#73BF69",
+                "value": 11
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Change"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#F2495C",
+                      "value": null
+                    },
+                    {
+                      "color": "#FADE2A",
+                      "value": 2
+                    },
+                    {
+                      "color": "#73BF69",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 7,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Position Change"
+          }
+        ]
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  query_text as \"Query\",\n  current_position as \"Current Position\",\n  week_ago_position as \"Previous Position\",\n  position_gain as \"Position Change\",\n  latest_check as \"Date\"\nFROM serp.vw_position_changes\nWHERE property = '$property'\n  AND position_gain > 0\nORDER BY position_gain DESC\nLIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Biggest Position Gains",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "id": 8,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  query_text as \"Query\",\n  position as \"Position\",\n  url as \"URL\",\n  domain as \"Domain\",\n  check_date as \"Date\"\nFROM serp.vw_current_positions\nWHERE property = '$property'\n  AND position <= 10\nORDER BY position ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Rankings",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
+      "id": 9,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  domain as \"Competitor Domain\",\n  COUNT(*) as \"Queries Competing\",\n  ROUND(AVG(position), 1) as \"Avg Position\",\n  MIN(position) as \"Best Position\"\nFROM serp.position_history ph\nJOIN serp.queries q ON ph.query_id = q.query_id\nWHERE q.property = '$property'\n  AND ph.domain != '$property'\n  AND ph.check_date >= CURRENT_DATE - INTERVAL '7 days'\nGROUP BY domain\nORDER BY \"Queries Competing\" DESC\nLIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Competitors",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "id": 10,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN position <= 3 THEN 'Top 3'\n    WHEN position <= 10 THEN 'Top 10'\n    WHEN position <= 20 THEN 'Top 20'\n    ELSE 'Beyond 20'\n  END as position_range,\n  COUNT(*) as count\nFROM serp.vw_current_positions\nWHERE property = '$property'\nGROUP BY position_range\nORDER BY CASE\n  WHEN position_range = 'Top 3' THEN 1\n  WHEN position_range = 'Top 10' THEN 2\n  WHEN position_range = 'Top 20' THEN 3\n  ELSE 4\nEND",
+          "refId": "A"
+        }
+      ],
+      "title": "Position Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "id": 11,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  q.query_text as \"Query\",\n  sf.feature_type as \"Feature Type\",\n  sf.featured_domain as \"Featured Domain\",\n  sf.check_date as \"Date\"\nFROM serp.serp_features sf\nJOIN serp.queries q ON sf.query_id = q.query_id\nWHERE q.property = '$property'\n  AND sf.check_date >= CURRENT_DATE - INTERVAL '7 days'\nORDER BY sf.check_date DESC\nLIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "SERP Features",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["serp", "seo", "rankings"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "https://blog.aspose.net",
+          "value": "https://blog.aspose.net"
+        },
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "definition": "SELECT DISTINCT property FROM serp.queries ORDER BY property",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Property",
+        "multi": false,
+        "name": "property",
+        "options": [],
+        "query": "SELECT DISTINCT property FROM serp.queries ORDER BY property",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "definition": "SELECT DISTINCT COALESCE(data_source, 'manual') as data_source FROM serp.queries WHERE property = '$property' ORDER BY data_source",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Data Source",
+        "multi": true,
+        "name": "data_source",
+        "options": [],
+        "query": "SELECT DISTINCT COALESCE(data_source, 'manual') as data_source FROM serp.queries WHERE property = '$property' ORDER BY data_source",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SERP Position Tracking",
+  "uid": "serp-tracking",
+  "version": 1,
+  "weekStart": ""
+}
