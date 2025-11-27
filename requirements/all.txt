@@ -1,0 +1,15 @@
+# ==========================================
+# ALL REQUIREMENTS
+# ==========================================
+# Complete set for local development
+# Use this for local virtualenv setup
+
+-r base.txt
+-r ingestors.txt
+-r insights.txt
+-r api.txt
+-r celery.txt
+-r metrics.txt
+-r scheduler.txt
+
+# Note: For development, use dev.txt which includes this file plus dev tools

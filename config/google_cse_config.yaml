@@ -1,0 +1,18 @@
+# Google Custom Search Engine Configuration
+google_cse:
+  # API credentials (use environment variables in production)
+  # api_key: ${GOOGLE_CSE_API_KEY}
+  # cse_id: ${GOOGLE_CSE_ID}
+
+  rate_limit:
+    daily_quota: 100
+    requests_per_second: 1
+
+  defaults:
+    num_results: 10
+    language: en
+    country: us
+
+  cache_ttl_minutes: 60
+  retries: 3
+  retry_delay: 2

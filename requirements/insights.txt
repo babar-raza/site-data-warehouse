@@ -1,0 +1,33 @@
+# ==========================================
+# INSIGHTS ENGINE REQUIREMENTS
+# ==========================================
+# For ML/AI-powered insights generation
+# insights_engine service
+#
+# NOTE: PyTorch version (CPU vs GPU) is controlled via Dockerfile
+# build args. This file does NOT specify torch - it's installed
+# separately in the Dockerfile based on USE_GPU build argument.
+#
+# Build options:
+#   CPU (default, smaller):  docker build ...
+#   GPU (larger, faster):    docker build --build-arg USE_GPU=true ...
+
+-r base.txt
+
+# Time Series & Forecasting
+prophet>=1.1.5
+statsmodels>=0.14.0
+
+# Machine Learning Core
+scikit-learn>=1.3.0
+
+# Embeddings & Semantic Search
+# Note: Will use CPU torch installed above
+sentence-transformers>=2.2.0
+pgvector>=0.2.0
+
+# Statistical Analysis
+scipy>=1.11.0
+
+# Visualization (for Prophet plots, optional in production)
+matplotlib>=3.7.0

@@ -1,0 +1,15 @@
+# ==========================================
+# INGESTORS REQUIREMENTS
+# ==========================================
+# For GSC and GA4 data ingestion services
+# api_ingestor, ga4_ingestor, startup_orchestrator
+
+-r base.txt
+
+# Google Cloud APIs
+google-auth>=2.16.0
+google-api-python-client>=2.100.0
+google-analytics-data>=0.18.0
+
+# Scheduling
+APScheduler>=3.10.1

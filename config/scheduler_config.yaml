@@ -1,0 +1,254 @@
+# ============================================================================
+# Scheduler Configuration
+# ============================================================================
+# This file defines scheduling configuration for automated tasks
+# Copy to scheduler_config.yaml and customize for your deployment
+
+# ============================================================================
+# Daily Pipeline Configuration
+# ============================================================================
+
+daily_pipeline:
+  # Daily pipeline runs at 9:00 AM UTC
+  enabled: true
+  schedule:
+    hour: 9
+    minute: 0
+
+  tasks:
+    # API Ingestion - Google Search Console data collection
+    api_ingestion:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 3
+
+    # GA4 Collection - Google Analytics 4 data collection
+    ga4_collection:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 3
+
+    # SERP Collection - Search Engine Results Position tracking
+    serp_collection:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 3
+      # Skips gracefully if SERPSTACK_API_KEY not configured
+
+    # CWV Collection - Core Web Vitals monitoring
+    cwv_collection:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 2
+      # Skips gracefully if PAGESPEED_API_KEY not configured
+
+    # SQL Transforms - Refresh materialized views and aggregations
+    sql_transforms:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 2
+
+    # Insights Refresh - Generate insights from latest data
+    insights_refresh:
+      enabled: true
+      non_blocking: true  # Failure doesn't stop pipeline
+      retry_on_failure: false
+
+    # Hugo Content Sync - Track content changes from Hugo CMS
+    hugo_sync:
+      enabled: true
+      non_blocking: true  # Failure doesn't stop pipeline
+      retry_on_failure: false
+      # Path can be set via HUGO_CONTENT_PATH env var
+      # hugo_path: /path/to/hugo/site
+
+    # Watermark Check - Verify data freshness
+    watermark_check:
+      enabled: true
+      retry_on_failure: false
+
+# ============================================================================
+# Weekly Maintenance Configuration
+# ============================================================================
+
+weekly_maintenance:
+  # Weekly maintenance runs on Sundays at 3:00 AM UTC
+  enabled: true
+  schedule:
+    day_of_week: sunday  # 0 = Monday, 6 = Sunday
+    hour: 3
+    minute: 0
+
+  tasks:
+    # Data Reconciliation - Re-check last 7 days via API
+    data_reconciliation:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 2
+
+    # SQL Transforms Refresh - Full refresh of views
+    sql_transforms_refresh:
+      enabled: true
+      retry_on_failure: true
+      max_retries: 2
+
+    # Cannibalization Refresh - Update cannibalization analysis
+    cannibalization_refresh:
+      enabled: true
+      retry_on_failure: false
+
+    # Content Analysis - Analyze page content quality
+    content_analysis:
+      enabled: true
+      non_blocking: true
+      retry_on_failure: false
+      max_pages: 100
+      batch_size: 10
+
+# ============================================================================
+# Hugo Content Sync Configuration
+# ============================================================================
+
+hugo_sync:
+  # Hugo sync can run daily (in pipeline) or via Celery scheduled task
+  enabled: true
+
+  # Schedule for standalone Celery task (if not using pipeline)
+  celery_schedule:
+    hour: 5
+    minute: 0
+
+  # Hugo site configuration
+  # Path to Hugo site root (contains 'content' directory)
+  # Can also be set via HUGO_CONTENT_PATH environment variable
+  # hugo_path: /path/to/hugo/site
+
+  # Property mapping (optional)
+  # Maps Hugo content to a specific GSC property
+  # Can also be set via GSC_PROPERTY environment variable
+  # property: https://example.com
+
+  # Sync options
+  options:
+    # Use git history for accurate timestamps (if available)
+    use_git_history: true
+
+    # Track deleted pages
+    track_deletions: true
+
+    # Maximum errors before failing
+    max_errors: 10
+
+# ============================================================================
+# Test Mode Configuration
+# ============================================================================
+
+test_modes:
+  # Test modes for debugging and validation
+
+  test_daily:
+    description: "Run daily pipeline once and exit"
+    command: "python scheduler/scheduler.py --test-daily"
+
+  test_insights:
+    description: "Run only insights refresh and exit"
+    command: "python scheduler/scheduler.py --test-insights"
+
+  test_content:
+    description: "Run only content analysis and exit"
+    command: "python scheduler/scheduler.py --test-content"
+
+  test_hugo:
+    description: "Run only Hugo sync and exit"
+    command: "python scheduler/scheduler.py --test-hugo"
+
+  dry_run:
+    description: "Show scheduled jobs without starting scheduler"
+    command: "python scheduler/scheduler.py --dry-run"
+
+# ============================================================================
+# Monitoring & Metrics
+# ============================================================================
+
+monitoring:
+  # Metrics tracking
+  metrics:
+    enabled: true
+    output_file: logs/scheduler_metrics.json
+
+    # Track these metrics for each task
+    track_metrics:
+      - last_run
+      - status
+      - duration_seconds
+      - error
+      - custom_metrics  # Task-specific metrics
+
+  # Health checks
+  health_checks:
+    enabled: true
+    check_database: true
+    check_before_tasks: true
+
+# ============================================================================
+# Error Handling
+# ============================================================================
+
+error_handling:
+  # Global error handling settings
+
+  # Critical tasks that must succeed for pipeline to be considered successful
+  critical_tasks:
+    - api_ingestion
+    - ga4_collection
+    - sql_transforms
+
+  # Non-blocking tasks that can fail without failing pipeline
+  non_blocking_tasks:
+    - insights_refresh
+    - hugo_sync
+    - serp_collection  # Non-critical if API key not configured
+    - cwv_collection   # Non-critical if API key not configured
+
+  # Retry configuration
+  retry:
+    enabled: true
+    default_max_retries: 3
+    default_retry_delay: 60  # seconds
+
+  # Notifications on failure
+  notifications:
+    enabled: false
+    channels:
+      - slack
+      - email
+    notify_on:
+      - critical_task_failure
+      - pipeline_failure
+
+# ============================================================================
+# Scheduler Options
+# ============================================================================
+
+scheduler:
+  # APScheduler configuration
+
+  # Scheduler type
+  type: blocking  # blocking, background
+
+  # Timezone
+  timezone: UTC
+
+  # Job defaults
+  job_defaults:
+    coalesce: false  # Combine missed runs
+    max_instances: 1  # Max concurrent instances of same job
+    misfire_grace_time: 60  # seconds
+
+  # Execution options
+  execution:
+    # Delay between tasks in pipeline
+    inter_task_delay: 2  # seconds
+
+    # Task timeout
+    task_timeout: 3600  # 1 hour

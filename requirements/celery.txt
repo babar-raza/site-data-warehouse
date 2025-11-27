@@ -1,0 +1,50 @@
+# ==========================================
+# CELERY WORKER REQUIREMENTS
+# ==========================================
+# For async task processing with full ML/AI stack
+# celery_worker service
+#
+# NOTE: PyTorch (CPU/GPU) is installed by Dockerfile before
+# this file, based on USE_GPU build argument.
+
+-r base.txt
+-r insights.txt
+
+# Task Queue
+celery>=5.3.0
+redis>=5.0.0
+redis[hiredis]>=5.0.0
+
+# LLM Integration
+ollama>=0.1.0
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-experimental>=0.0.10
+langgraph>=0.0.20
+
+# Content Analysis
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+readability-lxml>=0.8.1
+textstat>=0.7.3
+spacy>=3.7.0
+
+# Content Scraping
+playwright>=1.40.0
+Pillow>=10.0.0
+python-Levenshtein>=0.23.0
+
+# Content Management
+python-frontmatter>=1.0.0
+GitPython>=3.1.40
+
+# Advanced Analytics
+causalimpact>=0.1.1
+
+# Integration & Notifications
+PyGithub>=2.1.1
+slack-sdk>=3.23.0
+sendgrid>=6.10.0
+
+# Process Monitoring
+watchdog>=3.0.0

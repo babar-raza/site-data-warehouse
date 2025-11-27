@@ -1,0 +1,411 @@
+# ============================================================================
+# SERP Queries Configuration Example
+# ============================================================================
+# This file defines SERP queries to track for position monitoring
+# Copy to serp_queries.yaml and customize with your keywords
+
+# Properties and their tracked queries
+properties:
+  # ========================================
+  # Main Website
+  # ========================================
+  - property_url: "https://yourdomain.com"
+    display_name: "Main Website"
+
+    # Query groups for better organization
+    query_groups:
+
+      # Brand queries
+      - group_name: "Brand"
+        priority: "high"
+        queries:
+          - query_text: "your brand name"
+            target_page_path: "/"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+
+          - query_text: "your brand name"
+            target_page_path: "/"
+            location: "United States"
+            device: "mobile"
+            check_frequency: "daily"
+
+          - query_text: "your company name"
+            target_page_path: "/"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+
+      # Primary product/service queries
+      - group_name: "Primary Keywords"
+        priority: "high"
+        queries:
+          - query_text: "your main product keyword"
+            target_page_path: "/products/main-product"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+            notes: "Homepage ranks for this - priority keyword"
+
+          - query_text: "your main product keyword"
+            target_page_path: "/products/main-product"
+            location: "United States"
+            device: "mobile"
+            check_frequency: "daily"
+
+          - query_text: "your service keyword"
+            target_page_path: "/services"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+
+          - query_text: "best your category"
+            target_page_path: "/products"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+            notes: "High-value commercial intent"
+
+      # Secondary keywords
+      - group_name: "Secondary Keywords"
+        priority: "medium"
+        queries:
+          - query_text: "alternative to competitor"
+            target_page_path: "/vs-competitor"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+          - query_text: "your niche tutorial"
+            target_page_path: "/learn"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+          - query_text: "how to solve problem"
+            target_page_path: "/blog/solve-problem"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+      # Long-tail informational queries
+      - group_name: "Long-Tail Informational"
+        priority: "low"
+        queries:
+          - query_text: "what is your topic"
+            target_page_path: "/blog/what-is-topic"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "monthly"
+
+          - query_text: "how does your technology work"
+            target_page_path: "/blog/how-it-works"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "monthly"
+
+          - query_text: "your topic guide for beginners"
+            target_page_path: "/guides/beginners"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "monthly"
+
+      # Local SEO (if applicable)
+      - group_name: "Local"
+        priority: "high"
+        queries:
+          - query_text: "your service in city name"
+            target_page_path: "/locations/city"
+            location: "City, State, United States"
+            device: "desktop"
+            check_frequency: "daily"
+
+          - query_text: "best your category near me"
+            target_page_path: "/locations"
+            location: "City, State, United States"
+            device: "mobile"
+            check_frequency: "daily"
+            notes: "Mobile-first local query"
+
+      # Competitor comparison
+      - group_name: "Competitor Comparison"
+        priority: "medium"
+        queries:
+          - query_text: "your brand vs competitor brand"
+            target_page_path: "/compare/vs-competitor"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+            competitors:
+              - competitor1.com
+              - competitor2.com
+
+          - query_text: "competitor alternative"
+            target_page_path: "/alternatives/competitor"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+  # ========================================
+  # Blog Subdomain
+  # ========================================
+  - property_url: "https://blog.yourdomain.com"
+    display_name: "Blog"
+
+    query_groups:
+      - group_name: "Blog Keywords"
+        priority: "medium"
+        queries:
+          - query_text: "industry news topic"
+            target_page_path: "/industry-news"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "daily"
+
+          - query_text: "tutorial topic"
+            target_page_path: "/tutorials/topic"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+          - query_text: "best practices for topic"
+            target_page_path: "/best-practices-topic"
+            location: "United States"
+            device: "desktop"
+            check_frequency: "weekly"
+
+# ============================================================================
+# Monitoring Settings
+# ============================================================================
+
+monitoring_settings:
+  # API provider
+  api_provider: "valueserp"  # or "serpapi"
+
+  # Rate limiting
+  max_queries_per_day: 100    # Free tier limit
+  max_queries_per_hour: 10
+  batch_size: 5               # Queries per batch
+  delay_between_batches: 60   # Seconds
+
+  # Retry settings
+  max_retries: 3
+  retry_delay: 300            # 5 minutes
+
+  # Results settings
+  max_results: 100            # Number of results to fetch
+  track_serp_features: true   # Track featured snippets, PAA, etc.
+  track_competitors: true     # Track competitor positions
+
+  # Storage settings
+  keep_history_days: 365      # 1 year of historical data
+  snapshot_frequency: "daily"
+
+# ============================================================================
+# Competitor Tracking
+# ============================================================================
+
+competitor_settings:
+  # Global competitor list
+  competitors:
+    - domain: "competitor1.com"
+      name: "Competitor 1"
+      priority: "high"
+
+    - domain: "competitor2.com"
+      name: "Competitor 2"
+      priority: "high"
+
+    - domain: "competitor3.com"
+      name: "Competitor 3"
+      priority: "medium"
+
+    - domain: "competitor4.com"
+      name: "Competitor 4"
+      priority: "low"
+
+  # Alert when competitors move
+  track_movements: true
+  alert_on_competitor_gain: true
+  min_position_change: 3
+
+# ============================================================================
+# SERP Features to Track
+# ============================================================================
+
+serp_features:
+  # Which features to track
+  features:
+    - featured_snippet
+    - people_also_ask
+    - knowledge_panel
+    - local_pack
+    - image_pack
+    - video_carousel
+    - top_stories
+    - related_searches
+    - site_links
+
+  # Alert on opportunities
+  alert_on_opportunities: true
+  priority_features:
+    - featured_snippet
+    - people_also_ask
+    - knowledge_panel
+
+# ============================================================================
+# Location & Device Matrix
+# ============================================================================
+
+location_device_matrix:
+  # Common location/device combinations
+  configurations:
+    # Desktop tracking
+    - location: "United States"
+      device: "desktop"
+      priority: "high"
+
+    # Mobile tracking
+    - location: "United States"
+      device: "mobile"
+      priority: "high"
+
+    # Additional locations (if international)
+    - location: "United Kingdom"
+      device: "desktop"
+      priority: "medium"
+
+    - location: "Canada"
+      device: "desktop"
+      priority: "medium"
+
+    # Local markets
+    - location: "New York, NY, United States"
+      device: "mobile"
+      priority: "high"
+
+    - location: "Los Angeles, CA, United States"
+      device: "mobile"
+      priority: "medium"
+
+# ============================================================================
+# Check Frequency Presets
+# ============================================================================
+
+frequency_presets:
+  daily:
+    cron: "0 8 * * *"      # 8 AM daily
+    description: "High-priority keywords checked every day"
+
+  weekly:
+    cron: "0 8 * * 1"      # 8 AM Monday
+    description: "Medium-priority keywords checked weekly"
+
+  biweekly:
+    cron: "0 8 1,15 * *"   # 8 AM on 1st and 15th
+    description: "Low-priority keywords checked twice per month"
+
+  monthly:
+    cron: "0 8 1 * *"      # 8 AM on 1st of month
+    description: "Very low-priority keywords checked monthly"
+
+# ============================================================================
+# Reporting Settings
+# ============================================================================
+
+reporting:
+  # Ranking reports
+  daily_ranking_report:
+    enabled: true
+    time: "09:00"
+    include_changes: true
+    min_position_change: 1
+    channels:
+      - slack
+
+  weekly_summary:
+    enabled: true
+    day: "monday"
+    time: "09:00"
+    include_trends: true
+    include_competitors: true
+    include_serp_features: true
+    channels:
+      - email
+
+  monthly_report:
+    enabled: true
+    day: 1
+    time: "09:00"
+    include_historical_comparison: true
+    include_recommendations: true
+    channels:
+      - email
+
+# ============================================================================
+# Query Auto-Discovery
+# ============================================================================
+
+auto_discovery:
+  # Automatically discover new queries from GSC
+  enabled: true
+
+  # Criteria for auto-adding queries
+  min_impressions: 1000      # Query must have 1000+ impressions
+  min_clicks: 50             # Query must have 50+ clicks
+  max_position: 20           # Query must rank in top 20
+
+  # Auto-add queries that meet criteria
+  auto_add: true
+  approval_required: false   # If true, requires manual approval
+
+  # Where to add discovered queries
+  default_group: "Auto-Discovered"
+  default_priority: "low"
+  default_frequency: "weekly"
+
+  # Discovery schedule
+  discovery_schedule: "0 10 * * 1"  # 10 AM Monday
+
+# ============================================================================
+# Performance Optimization
+# ============================================================================
+
+optimization:
+  # Cache SERP results
+  cache_results: true
+  cache_ttl_hours: 24
+
+  # Parallel processing
+  parallel_queries: 5        # Number of queries to process in parallel
+
+  # Smart scheduling
+  smart_scheduling: true     # Avoid checking queries that rarely change
+  stability_threshold: 0.1   # If position variance < 0.1, reduce frequency
+
+  # Budget management
+  track_api_usage: true
+  alert_on_quota_threshold: 0.8  # Alert at 80% of daily quota
+  pause_on_quota_exceeded: true
+
+# ============================================================================
+# Integration Settings
+# ============================================================================
+
+integrations:
+  # GSC integration
+  gsc_integration:
+    enabled: true
+    compare_with_gsc_data: true  # Compare SERP API with GSC data
+    prefer_source: "serp_api"    # Use SERP API as primary source
+
+  # GA4 integration
+  ga4_integration:
+    enabled: true
+    track_conversions: true      # Link rankings to conversion data
+
+  # Grafana dashboards
+  grafana_integration:
+    enabled: true
+    auto_create_panels: true     # Auto-create panels for new queries

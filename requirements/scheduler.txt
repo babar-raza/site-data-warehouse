@@ -1,0 +1,10 @@
+# ==========================================
+# SCHEDULER REQUIREMENTS
+# ==========================================
+# For scheduled tasks and orchestration
+# scheduler service
+
+-r ingestors.txt
+
+# Additional scheduling utilities
+flask>=3.0.0

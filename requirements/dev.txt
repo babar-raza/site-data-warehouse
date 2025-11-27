@@ -1,0 +1,27 @@
+# ==========================================
+# DEVELOPMENT REQUIREMENTS
+# ==========================================
+# Testing, linting, and development tools
+# NOT included in production images
+
+-r all.txt
+
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+
+# Code Quality
+black>=23.9.0
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.5.0
+
+# Development Tools
+ipython>=8.14.0
+ipdb>=0.13.13
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0

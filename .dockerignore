@@ -1,8 +1,20 @@
-# Git
+# =============================================
+# DOCKER BUILD CONTEXT IGNORE
+# =============================================
+# Optimized for minimal build context size
+# Excludes unnecessary files from Docker builds
+
+# =============================================
+# VERSION CONTROL
+# =============================================
 .git
 .gitignore
+.gitattributes
+.github
 
-# Python
+# =============================================
+# PYTHON
+# =============================================
 __pycache__
 *.pyc
 *.pyo
@@ -11,46 +23,249 @@ __pycache__
 *.so
 *.egg
 *.egg-info
+*.eggs
 dist
 build
 .pytest_cache
 .coverage
+.coveragerc
+htmlcov
+.tox
+.mypy_cache
+.dmypy.json
+dmypy.json
+.ruff_cache
+*.cover
+*.py,cover
+.hypothesis
 
-# Virtual environments
-venv
-env
-.venv
+# =============================================
+# VIRTUAL ENVIRONMENTS
+# =============================================
+venv/
+env/
+.venv/
+.env/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+.pyenv/
 
-# IDE
-.vscode
-.idea
+# =============================================
+# IDE & EDITORS
+# =============================================
+.vscode/
+.idea/
 *.swp
 *.swo
+*.swn
 *~
-
-# OS
 .DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+.claude/
+
+# =============================================
+# OS FILES
+# =============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Logs
+# =============================================
+# LOGS & REPORTS
+# =============================================
 *.log
-logs/*
-
-# Secrets (should use Docker secrets instead)
-secrets/*.json
-secrets/*.txt
-.env
-
-# Reports (build-time not needed)
+logs/
+*.log.*
+log/
+reports/
 report/
+*.report
+.coverage
+coverage.xml
+*.cover
 
-# Documentation
+# =============================================
+# SECRETS & CREDENTIALS
+# =============================================
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+credentials.json
+service-account*.json
+*_sa.json
+.secrets
+
+# =============================================
+# DOCUMENTATION (not needed in containers)
+# =============================================
+docs/
 *.md
+*.rst
+*.txt
 README*
+LICENSE*
+CHANGELOG*
+CONTRIBUTING*
+AUTHORS*
+!requirements.txt
+!requirements/*.txt
 
-# Test files
+# =============================================
+# TESTS (exclude from runtime images)
+# =============================================
+tests/
+test/
 test_*.py
+*_test.py
+conftest.py
+pytest.ini
+.pytest_cache/
+samples/
+fixtures/
+mocks/
 
-# Batch scripts
+# =============================================
+# DEPLOYMENT & INFRASTRUCTURE
+# =============================================
+docker-compose*.yml
+!docker-compose.yml
+Dockerfile*
+!Dockerfile
+.dockerignore
+deployment/
+kubernetes/
+k8s/
+helm/
+terraform/
+ansible/
+*.tf
+*.tfvars
+
+# =============================================
+# SCRIPTS (not needed in containers)
+# =============================================
+# Commented out as scheduler needs scripts/
+# scripts/
 *.bat
 *.ps1
+# Commented out as some scripts needed in containers
+# *.sh
+Makefile
+justfile
+
+# =============================================
+# PLANS & ANALYSIS
+# =============================================
+plans/
+planning/
+automation/
+analysis/
+benchmarks/
+
+# =============================================
+# MONITORING & OBSERVABILITY (mounted as volumes)
+# =============================================
+grafana/
+prometheus/
+*.prometheus
+alertmanager/
+
+# =============================================
+# DATA FILES (large, mount as volumes instead)
+# =============================================
+*.csv
+*.tsv
+*.parquet
+*.arrow
+*.db
+*.sqlite
+*.sqlite3
+data/
+datasets/
+*.json.gz
+*.csv.gz
+*.parquet.gz
+
+# =============================================
+# BACKUP FILES
+# =============================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+
+# =============================================
+# TEMPORARY FILES
+# =============================================
+tmp/
+temp/
+*.tmp
+.cache/
+.temp/
+__temp__/
+
+# =============================================
+# NODE.JS (if any)
+# =============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# =============================================
+# JUPYTER NOTEBOOKS
+# =============================================
+.ipynb_checkpoints/
+*.ipynb
+
+# =============================================
+# BUILD ARTIFACTS
+# =============================================
+*.whl
+*.tar.gz
+*.zip
+*.7z
+*.dmg
+*.iso
+wheelhouse/
+
+# =============================================
+# CI/CD
+# =============================================
+.circleci/
+.travis.yml
+.gitlab-ci.yml
+azure-pipelines.yml
+Jenkinsfile
+.drone.yml
+
+# =============================================
+# SPECIAL EXCEPTIONS
+# =============================================
+# Include specific files that are needed
+!.env.example
+!requirements.txt
+!requirements/

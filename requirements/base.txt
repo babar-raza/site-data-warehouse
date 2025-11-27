@@ -1,0 +1,28 @@
+# ==========================================
+# BASE REQUIREMENTS
+# ==========================================
+# Core dependencies used by multiple services
+# Minimal, stable set for fastest builds
+
+# Database - Core
+psycopg2-binary>=2.9.6
+sqlalchemy==2.0.36
+asyncpg>=0.28.0
+
+# Core Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+aiofiles>=23.0.0
+
+# Data Processing - Essential
+pandas>=2.0.3
+pyarrow>=12.0.1
+numpy>=1.24.0
+
+# HTTP Client
+requests>=2.31.0
+httpx>=0.25.0
+tenacity>=8.2.0
+
+# Logging & Monitoring (minimal)
+pydantic>=2.0.0

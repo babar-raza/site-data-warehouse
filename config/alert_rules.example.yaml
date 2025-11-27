@@ -1,0 +1,434 @@
+# ============================================================================
+# Alert Rules Configuration Example
+# ============================================================================
+# This file defines alert rules for the SEO Intelligence Platform
+# Copy to alert_rules.yaml and customize for your needs
+
+# Properties to monitor
+properties:
+  - url: "https://yourdomain.com"
+    name: "Main Website"
+  - url: "https://blog.yourdomain.com"
+    name: "Blog"
+
+# ============================================================================
+# SERP Position Alerts
+# ============================================================================
+
+serp_alerts:
+  # Alert when position drops significantly
+  - name: "SERP Position Drop - High Priority"
+    enabled: true
+    rule_type: "serp_drop"
+    severity: "high"
+    conditions:
+      position_drop: 3  # Alert if position drops 3+ spots
+      min_impressions: 100  # Only for queries with 100+ impressions
+    channels:
+      - slack
+      - email
+    suppression_window_minutes: 360  # 6 hours
+    max_alerts_per_day: 5
+
+  - name: "SERP Position Drop - Critical"
+    enabled: true
+    rule_type: "serp_drop"
+    severity: "critical"
+    conditions:
+      position_drop: 5  # Alert if position drops 5+ spots
+      min_impressions: 500  # Only for high-traffic queries
+    channels:
+      - slack
+      - email
+      - webhook
+    suppression_window_minutes: 180  # 3 hours
+    max_alerts_per_day: 10
+
+  # Alert when completely leaving top 10
+  - name: "Dropped Out of Top 10"
+    enabled: true
+    rule_type: "serp_drop_out"
+    severity: "high"
+    conditions:
+      previous_position_max: 10  # Was in top 10
+      current_position_min: 11   # Now outside top 10
+    channels:
+      - slack
+      - email
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 3
+
+  # Alert for position improvements (opportunities)
+  - name: "SERP Position Gain"
+    enabled: true
+    rule_type: "serp_gain"
+    severity: "low"
+    conditions:
+      position_gain: 5  # Alert if position improves 5+ spots
+      min_impressions: 100
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 5
+
+  # Alert for new top 10 rankings
+  - name: "New Top 10 Ranking"
+    enabled: true
+    rule_type: "serp_new_top10"
+    severity: "low"
+    conditions:
+      previous_position_min: 11  # Wasn't in top 10
+      current_position_max: 10   # Now in top 10
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 10
+
+# ============================================================================
+# Core Web Vitals Alerts
+# ============================================================================
+
+cwv_alerts:
+  # Alert when CWV metrics are poor
+  - name: "Poor Core Web Vitals"
+    enabled: true
+    rule_type: "cwv_poor"
+    severity: "high"
+    conditions:
+      lcp_threshold: 2500   # LCP > 2.5s (poor)
+      fid_threshold: 100    # FID > 100ms (poor)
+      cls_threshold: 0.1    # CLS > 0.1 (poor)
+      any_metric: true      # Alert if ANY metric is poor
+    channels:
+      - slack
+      - email
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 3
+
+  # Alert when CWV metrics degrade
+  - name: "CWV Performance Degradation"
+    enabled: true
+    rule_type: "cwv_degradation"
+    severity: "medium"
+    conditions:
+      lcp_increase_pct: 20   # Alert if LCP increases 20%+
+      cls_increase_pct: 50   # Alert if CLS increases 50%+
+      lookback_days: 7       # Compare to 7-day average
+    channels:
+      - slack
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 5
+
+  # Alert for CWV improvements
+  - name: "CWV Performance Improvement"
+    enabled: false  # Disabled by default
+    rule_type: "cwv_improvement"
+    severity: "low"
+    conditions:
+      lcp_decrease_pct: 20   # Alert if LCP improves 20%+
+      lookback_days: 7
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 2
+
+# ============================================================================
+# Traffic & Engagement Alerts
+# ============================================================================
+
+traffic_alerts:
+  # Alert for significant traffic drop
+  - name: "Traffic Drop - High"
+    enabled: true
+    rule_type: "traffic_drop"
+    severity: "high"
+    conditions:
+      clicks_drop_pct: 30     # 30%+ drop in clicks
+      min_baseline_clicks: 100  # Only if baseline is 100+ clicks
+      lookback_days: 7        # Compare to 7-day average
+    channels:
+      - slack
+      - email
+    suppression_window_minutes: 360  # 6 hours
+    max_alerts_per_day: 3
+
+  - name: "Traffic Drop - Critical"
+    enabled: true
+    rule_type: "traffic_drop"
+    severity: "critical"
+    conditions:
+      clicks_drop_pct: 50     # 50%+ drop in clicks
+      min_baseline_clicks: 500
+      lookback_days: 7
+    channels:
+      - slack
+      - email
+      - webhook
+    suppression_window_minutes: 180  # 3 hours
+    max_alerts_per_day: 5
+
+  # Alert for traffic spike (opportunity)
+  - name: "Traffic Surge"
+    enabled: true
+    rule_type: "traffic_surge"
+    severity: "low"
+    conditions:
+      clicks_increase_pct: 100  # 100%+ increase
+      min_baseline_clicks: 50
+      lookback_days: 7
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 5
+
+  # Alert for CTR drop
+  - name: "CTR Drop"
+    enabled: true
+    rule_type: "ctr_drop"
+    severity: "medium"
+    conditions:
+      ctr_drop_pct: 25        # 25%+ CTR drop
+      min_impressions: 1000   # Only for queries with visibility
+      lookback_days: 7
+    channels:
+      - slack
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 5
+
+# ============================================================================
+# Anomaly Detection Alerts
+# ============================================================================
+
+anomaly_alerts:
+  # Alert for statistical anomalies
+  - name: "Statistical Anomaly Detected"
+    enabled: true
+    rule_type: "anomaly_statistical"
+    severity: "medium"
+    conditions:
+      zscore_threshold: 2.5   # 2.5 standard deviations
+      metrics:
+        - clicks
+        - impressions
+        - position
+    channels:
+      - slack
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 10
+
+  # Alert for ML-detected anomalies
+  - name: "ML Anomaly Detected"
+    enabled: true
+    rule_type: "anomaly_ml"
+    severity: "medium"
+    conditions:
+      confidence_threshold: 0.8  # 80%+ confidence
+      metrics:
+        - clicks
+        - position
+    channels:
+      - slack
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 10
+
+  # Alert for forecast anomalies
+  - name: "Forecast Deviation"
+    enabled: true
+    rule_type: "anomaly_forecast"
+    severity: "medium"
+    conditions:
+      deviation_pct: 30       # 30%+ deviation from forecast
+      confidence_threshold: 0.7
+      metrics:
+        - clicks
+        - impressions
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 5
+
+# ============================================================================
+# Content & Indexing Alerts
+# ============================================================================
+
+content_alerts:
+  # Alert for new 404 errors
+  - name: "New 404 Errors"
+    enabled: true
+    rule_type: "indexing_404"
+    severity: "high"
+    conditions:
+      new_404_count: 5  # Alert if 5+ new 404s detected
+    channels:
+      - slack
+      - email
+    suppression_window_minutes: 720  # 12 hours
+    max_alerts_per_day: 3
+
+  # Alert for indexing issues
+  - name: "Indexing Coverage Drop"
+    enabled: true
+    rule_type: "indexing_drop"
+    severity: "medium"
+    conditions:
+      coverage_drop_pct: 10  # 10%+ drop in indexed pages
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 2
+
+  # Alert for content quality issues
+  - name: "Low Readability Score"
+    enabled: true
+    rule_type: "content_quality"
+    severity: "low"
+    conditions:
+      readability_score_max: 40  # Readability below 40
+      min_impressions: 500        # Only for visible content
+    channels:
+      - slack
+    suppression_window_minutes: 10080  # 7 days
+    max_alerts_per_day: 5
+
+# ============================================================================
+# Competitor Alerts
+# ============================================================================
+
+competitor_alerts:
+  # Alert when competitors gain positions
+  - name: "Competitor Position Gain"
+    enabled: true
+    rule_type: "competitor_movement"
+    severity: "medium"
+    conditions:
+      competitor_domains:
+        - competitor1.com
+        - competitor2.com
+        - competitor3.com
+      position_change: -3     # They moved up 3+ positions
+      our_position_min: 4     # Only if we're ranking below them
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 10
+
+  # Alert for new SERP features captured by competitors
+  - name: "Competitor SERP Feature Win"
+    enabled: true
+    rule_type: "competitor_serp_feature"
+    severity: "low"
+    conditions:
+      competitor_domains:
+        - competitor1.com
+        - competitor2.com
+      serp_features:
+        - featured_snippet
+        - people_also_ask
+        - knowledge_panel
+    channels:
+      - slack
+    suppression_window_minutes: 1440  # 24 hours
+    max_alerts_per_day: 5
+
+# ============================================================================
+# Multi-Agent Workflow Triggers
+# ============================================================================
+
+workflow_triggers:
+  # Trigger emergency response workflow
+  - name: "Emergency Response Trigger"
+    enabled: true
+    conditions:
+      # Trigger if any of these alerts fire
+      alert_types:
+        - "SERP Position Drop - Critical"
+        - "Traffic Drop - Critical"
+      # Or if anomaly confidence is very high
+      anomaly_confidence_min: 0.9
+    workflow: "emergency_response"
+    agents:
+      - serp_analyst
+      - performance_agent
+      - content_optimizer
+
+  # Trigger daily analysis workflow
+  - name: "Daily Analysis"
+    enabled: true
+    schedule: "0 13 * * *"  # 1 PM daily
+    workflow: "daily_analysis"
+    agents:
+      - serp_analyst
+      - performance_agent
+    generate_report: true
+
+  # Trigger opportunity discovery workflow
+  - name: "Opportunity Discovery"
+    enabled: true
+    conditions:
+      alert_types:
+        - "SERP Position Gain"
+        - "Traffic Surge"
+        - "New Top 10 Ranking"
+    workflow: "opportunity_analysis"
+    agents:
+      - serp_analyst
+      - content_optimizer
+
+# ============================================================================
+# Notification Settings
+# ============================================================================
+
+notification_settings:
+  # Channel configurations
+  slack:
+    enabled: true
+    severity_colors:
+      low: "#36a64f"      # Green
+      medium: "#ff9900"   # Orange
+      high: "#ff0000"     # Red
+      critical: "#8b0000" # Dark red
+    mention_on_critical: true
+    mention_users:
+      - "@seo-team"
+      - "@devops"
+
+  email:
+    enabled: true
+    batch_window_minutes: 30  # Batch emails within 30 min
+    include_grafana_links: true
+    include_recommendations: true
+
+  webhook:
+    enabled: false
+    retry_attempts: 3
+    retry_delay_seconds: 60
+
+# ============================================================================
+# Alert Aggregation
+# ============================================================================
+
+aggregation:
+  # Group similar alerts
+  enabled: true
+  window_minutes: 60        # Group alerts within 60 minutes
+  max_individual_alerts: 3  # Send max 3 individual, then summarize
+
+  # Daily digest
+  daily_digest:
+    enabled: true
+    time: "09:00"  # 9 AM
+    include_resolved: true
+    include_metrics_summary: true
+    channels:
+      - email
+
+  # Weekly summary
+  weekly_summary:
+    enabled: true
+    day: "monday"
+    time: "09:00"
+    include_trends: true
+    include_agent_recommendations: true
+    channels:
+      - email
+      - slack

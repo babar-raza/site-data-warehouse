@@ -1,0 +1,14 @@
+# ==========================================
+# METRICS EXPORTER REQUIREMENTS
+# ==========================================
+# For Prometheus metrics export
+# metrics_exporter service
+
+-r base.txt
+
+# Flask & Production Server
+flask>=3.0.0
+gunicorn>=21.2.0
+
+# Prometheus Client
+prometheus-client>=0.18.0

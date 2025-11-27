@@ -1,0 +1,23 @@
+# Google Trends Configuration
+google_trends:
+  rate_limit:
+    requests_per_minute: 10
+    burst_limit: 3
+
+  timeframes:
+    default: "today 12-m"
+    short: "today 3-m"
+    long: "today 5-y"
+
+  regions:
+    - US
+    - GB
+    - IN
+    - DE
+    - FR
+
+  cache_ttl_minutes: 15
+  language: "en-US"
+  timezone: 360
+  retries: 3
+  retry_delay: 5

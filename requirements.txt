@@ -1,10 +1,11 @@
 # Google Cloud dependencies (API-Only Mode)
 google-auth>=2.16.0
 google-api-python-client>=2.100.0
+google-analytics-data>=0.18.0
 
 # Database
 psycopg2-binary>=2.9.6
-sqlalchemy>=2.0.20
+sqlalchemy==2.0.36
 asyncpg>=0.28.0
 
 # Utilities
@@ -13,6 +14,7 @@ pandas>=2.0.3
 pyarrow>=12.0.1
 pyyaml>=6.0.0
 aiofiles>=23.0.0
+psutil>=5.9.0
 
 # API and scheduling
 requests>=2.31.0
@@ -31,3 +33,161 @@ gunicorn>=21.2.0
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-asyncio>=0.21.0
+jsonschema>=4.17.0
+
+# ==========================================
+# PHASE 1 ENHANCEMENTS (Tier 1)
+# ==========================================
+
+# AI/ML Libraries
+prophet>=1.1.5
+# Time series forecasting (replaces Z-score anomaly detection)
+
+ollama>=0.1.0
+# Local LLM client for content analysis
+
+instructor>=1.0.0
+# Structured LLM outputs with Pydantic validation and auto-retry
+
+langchain>=0.1.0
+langchain-community>=0.0.10
+# LLM orchestration framework
+
+sentence-transformers>=2.2.0
+# Text embeddings for semantic search
+
+scikit-learn>=1.3.0
+# Clustering and ML algorithms
+
+scipy>=1.11.0
+# Scientific computing (linear regression, FFT, statistics)
+
+# Content Analysis
+readability-lxml>=0.8.1
+# Content readability scoring
+
+textstat>=0.7.3
+# Text statistics (Flesch-Kincaid, etc.)
+
+spacy>=3.7.0
+# NLP processing (optional, for advanced analysis)
+
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+# HTML parsing
+
+# Hugo Integration
+python-frontmatter>=1.0.0
+# Parse markdown frontmatter
+
+GitPython>=3.1.40
+# Git integration for content versioning
+
+# Database Extensions
+pgvector>=0.2.0
+# PostgreSQL vector extension support
+
+# Task Queue (Celery)
+celery>=5.3.0
+redis>=5.0.0
+# Async task processing
+
+# Additional utilities
+httpx>=0.25.0
+# Async HTTP client (for Ollama)
+
+numpy>=1.24.0
+# Required by Prophet and scikit-learn
+
+matplotlib>=3.7.0
+# Optional: for Prophet plots
+
+tenacity>=8.2.0
+# Retry logic for API calls
+
+# ==========================================
+# PHASE 2 ENHANCEMENTS (Tier 2 & 3)
+# ==========================================
+
+# LangGraph & Advanced LangChain
+langgraph>=0.0.20
+# Stateful agent workflows and multi-agent orchestration
+
+langchain-experimental>=0.0.10
+# SQL agents and experimental features
+
+# Scraping & Monitoring
+playwright>=1.40.0
+# Headless browser for content scraping
+
+Pillow>=10.0.0
+# Image processing and screenshot comparison
+
+python-Levenshtein>=0.23.0
+# Fast text diff for change detection
+
+# Performance Enhancement
+redis[hiredis]>=5.0.0
+# Redis with C-based parser for speed (already have redis, this adds hiredis)
+
+# ==========================================
+# PHASE 3 ENHANCEMENTS (Tier 3 & 4)
+# ==========================================
+
+# Google Trends
+pytrends>=4.9.0
+# Google Trends API client for trend analysis
+
+# SERP Tracking
+# No additional packages needed - uses httpx (already included)
+
+# Core Web Vitals
+# No additional packages needed - uses httpx and PageSpeed Insights API (free)
+
+# Causal Impact Analysis
+causalimpact>=0.1.1
+# Bayesian structural time series for measuring causal effects
+
+# Auto-PR Generation
+PyGithub>=2.1.1
+# GitHub API client for automated pull requests
+
+# ==========================================
+# PHASE 4 ENHANCEMENTS (Operationalization)
+# ==========================================
+
+# Notifications & Alerting
+slack-sdk>=3.23.0
+# Slack webhook and API client for notifications
+
+sendgrid>=6.10.0
+# SendGrid email API (optional - can use SMTP instead)
+
+# Anomaly Detection
+statsmodels>=0.14.0
+# Statistical models and tests (ARIMA, seasonal decomposition)
+
+# Already included from earlier phases:
+# - scikit-learn (Isolation Forest, clustering)
+# - prophet (time series forecasting)
+# - httpx (webhook notifications)
+
+# Testing & Quality
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+# Comprehensive test suite support
+
+# Code Quality
+black>=23.9.0
+# Code formatting
+
+isort>=5.12.0
+# Import sorting
+
+flake8>=6.1.0
+# Linting
+
+# LangGraph already included from Phase 2
+# Used for multi-agent orchestration

@@ -1,0 +1,17 @@
+# ==========================================
+# API REQUIREMENTS
+# ==========================================
+# For FastAPI-based REST APIs
+# insights_api, mcp services
+
+-r base.txt
+
+# FastAPI Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# API Production Server
+gunicorn>=21.2.0
+
+# Metrics Export
+prometheus-client>=0.18.0

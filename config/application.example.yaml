@@ -1,0 +1,497 @@
+# ============================================================================
+# Application Configuration Example
+# ============================================================================
+# This file defines application-wide settings for the SEO Intelligence Platform
+# Copy to application.yaml and customize for your deployment
+
+# ============================================================================
+# Application Metadata
+# ============================================================================
+
+application:
+  name: "SEO Intelligence Platform"
+  version: "1.0.0"
+  environment: "production"  # development, staging, production
+  timezone: "America/New_York"
+
+# ============================================================================
+# Feature Flags
+# ============================================================================
+
+features:
+  # Phase 1 features
+  content_analysis: true
+  embeddings: true
+  forecasting: true
+  topic_clustering: true
+
+  # Phase 2 features
+  natural_language_query: true
+  multi_agent_system: true
+  event_streams: true
+  content_scraping: true
+
+  # Phase 3 features
+  serp_tracking: true
+  cwv_monitoring: true
+  causal_impact: true
+  github_automation: false  # Disabled by default for safety
+
+  # Phase 4 features
+  advanced_alerting: true
+  anomaly_detection: true
+  grafana_dashboards: true
+
+# ============================================================================
+# Data Collection
+# ============================================================================
+
+data_collection:
+  # GSC collection
+  gsc:
+    enabled: true
+    schedule: "0 6 * * *"      # 6 AM daily
+    days_back: 3               # Collect last 3 days (GSC 48h delay)
+    max_rows: 25000
+    dimensions:
+      - query
+      - page
+      - device
+      - country
+    retry_on_failure: true
+    max_retries: 3
+
+  # GA4 collection
+  ga4:
+    enabled: true
+    schedule: "0 7 * * *"      # 7 AM daily
+    days_back: 3               # Collect last 3 days
+    limit: 100000
+    dimensions:
+      - pagePath
+      - pageTitle
+      - country
+      - deviceCategory
+    metrics:
+      - screenPageViews
+      - sessions
+      - engagementRate
+      - averageSessionDuration
+    retry_on_failure: true
+    max_retries: 3
+
+  # SERP tracking
+  serp:
+    enabled: true
+    schedule: "0 8 * * *"      # 8 AM daily
+    batch_size: 5
+    delay_between_batches: 60  # seconds
+    max_queries_per_day: 100   # Free tier limit
+    track_competitors: true
+    track_serp_features: true
+    retry_on_failure: true
+    max_retries: 3
+
+  # CWV monitoring
+  cwv:
+    enabled: true
+    schedule: "0 9 * * *"      # 9 AM daily
+    check_mobile: true
+    check_desktop: true
+    pages_per_day: 50          # PageSpeed API rate limit
+    priority_pages_only: true
+    retry_on_failure: true
+    max_retries: 2
+
+# ============================================================================
+# Processing & Analytics
+# ============================================================================
+
+processing:
+  # Content analysis
+  content_analysis:
+    enabled: true
+    schedule: "0 10 * * 0"     # 10 AM Sunday (weekly)
+    batch_size: 10
+    max_pages_per_run: 100
+    headless_browser: true
+    timeout_seconds: 30
+
+  # Embeddings generation
+  embeddings:
+    enabled: true
+    schedule: "0 11 * * 0"     # 11 AM Sunday (weekly)
+    model: "all-MiniLM-L6-v2"
+    batch_size: 50
+    recompute_existing: false
+
+  # Topic clustering
+  topic_clustering:
+    enabled: true
+    schedule: "0 12 * * 0"     # 12 PM Sunday (weekly)
+    min_cluster_size: 3
+    max_clusters: 20
+    algorithm: "kmeans"        # kmeans, dbscan, hierarchical
+
+  # Forecasting
+  forecasting:
+    enabled: true
+    schedule: "0 13 * * 1"     # 1 PM Monday (weekly)
+    days_ahead: 30
+    seasonality_mode: "multiplicative"
+    changepoint_prior_scale: 0.05
+    interval_width: 0.95
+
+  # Anomaly detection
+  anomaly_detection:
+    enabled: true
+    schedule: "0 11 * * *"     # 11 AM daily
+    methods:
+      - statistical             # Z-score based
+      - ml                      # Isolation Forest
+      - forecasting             # Prophet-based
+    sensitivity: 1.0           # 1.0 = normal, 2.0 = strict, 0.5 = lenient
+    min_datapoints: 14
+    lookback_days: 30
+
+# ============================================================================
+# Multi-Agent System
+# ============================================================================
+
+agents:
+  # Supervisor agent
+  supervisor:
+    enabled: true
+    max_iterations: 10
+    timeout_seconds: 300
+
+  # Specialist agents
+  serp_analyst:
+    enabled: true
+    confidence_threshold: 0.7
+
+  performance_agent:
+    enabled: true
+    confidence_threshold: 0.7
+
+  content_optimizer:
+    enabled: false  # Optional agent
+    confidence_threshold: 0.7
+
+  impact_validator:
+    enabled: false  # Optional agent
+    confidence_threshold: 0.8
+
+  # Workflow schedules
+  workflows:
+    daily_analysis:
+      enabled: true
+      schedule: "0 13 * * *"   # 1 PM daily
+      agents:
+        - serp_analyst
+        - performance_agent
+
+    weekly_review:
+      enabled: true
+      schedule: "0 14 * * 1"   # 2 PM Monday
+      agents:
+        - serp_analyst
+        - performance_agent
+        - content_optimizer
+
+    emergency_response:
+      enabled: true
+      trigger_on_alerts:
+        - "SERP Position Drop - Critical"
+        - "Traffic Drop - Critical"
+      agents:
+        - serp_analyst
+        - performance_agent
+
+# ============================================================================
+# Alerting & Notifications
+# ============================================================================
+
+alerting:
+  # Global settings
+  enabled: true
+  process_queue_interval: 300  # 5 minutes
+  evaluate_rules_interval: 3600  # 1 hour
+
+  # Alert channels
+  channels:
+    slack:
+      enabled: true
+      default_channel: "#seo-alerts"
+      mention_on_critical: true
+      mention_users:
+        - "@seo-team"
+
+    email:
+      enabled: true
+      batch_window_minutes: 30
+      include_charts: true
+      include_recommendations: true
+
+    webhook:
+      enabled: false
+      retry_attempts: 3
+      retry_delay_seconds: 60
+
+  # Alert aggregation
+  aggregation:
+    enabled: true
+    window_minutes: 60
+    max_individual_alerts: 3
+
+  # Digest reports
+  digests:
+    daily:
+      enabled: true
+      time: "09:00"
+      channels:
+        - email
+
+    weekly:
+      enabled: true
+      day: "monday"
+      time: "09:00"
+      channels:
+        - email
+        - slack
+
+# ============================================================================
+# Storage & Retention
+# ============================================================================
+
+storage:
+  # Database
+  database:
+    connection_pool:
+      min_size: 10
+      max_size: 20
+      max_queries: 50000
+      max_inactive_connection_lifetime: 300
+
+  # Data retention
+  retention:
+    # Raw data
+    gsc_query_stats: 365       # days
+    ga4_events: 365
+    serp_position_history: 365
+    cwv_metrics: 365
+
+    # Processed data
+    forecasts: 90
+    anomaly_detections: 180
+    agent_decisions: 180
+    alert_history: 365
+
+    # Logs
+    application_logs: 30
+    error_logs: 90
+
+  # Backups
+  backups:
+    enabled: true
+    schedule: "0 2 * * *"      # 2 AM daily
+    retention_days: 30
+    backup_path: "/backups/seo-platform"
+    compress: true
+    include_logs: false
+
+# ============================================================================
+# Performance & Optimization
+# ============================================================================
+
+performance:
+  # Caching
+  cache:
+    enabled: true
+    backend: "redis"
+    ttl_seconds: 3600
+    max_memory_mb: 512
+
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    api_calls_per_minute: 60
+    database_queries_per_minute: 1000
+
+  # Query optimization
+  database:
+    enable_query_logging: false
+    slow_query_threshold_ms: 1000
+    vacuum_schedule: "0 3 * * 0"  # 3 AM Sunday
+
+  # Celery workers
+  celery:
+    concurrency: 4
+    max_tasks_per_child: 1000
+    task_time_limit: 3600       # 1 hour
+    task_soft_time_limit: 3000  # 50 minutes
+    prefetch_multiplier: 4
+
+# ============================================================================
+# Security
+# ============================================================================
+
+security:
+  # API security
+  api:
+    enabled: true
+    require_api_key: true
+    allowed_hosts:
+      - localhost
+      - 127.0.0.1
+      - yourdomain.com
+    cors_enabled: true
+    cors_origins:
+      - https://yourdomain.com
+
+  # Database security
+  database:
+    ssl_mode: "prefer"        # disable, allow, prefer, require
+    ssl_cert_path: ""
+    ssl_key_path: ""
+    ssl_ca_path: ""
+
+  # Secrets management
+  secrets:
+    use_env_vars: true
+    use_secrets_file: false
+    secrets_path: "/etc/seo-platform/secrets"
+
+  # GitHub automation security
+  github:
+    require_approval: true    # Require approval before creating PRs
+    allowed_branches:
+      - main
+      - develop
+    auto_merge: false
+    sign_commits: false
+
+# ============================================================================
+# Monitoring & Observability
+# ============================================================================
+
+monitoring:
+  # Application monitoring
+  application:
+    enabled: true
+    health_check_port: 8080
+    health_check_path: "/health"
+    metrics_port: 9090
+    metrics_path: "/metrics"
+
+  # Error tracking
+  error_tracking:
+    enabled: false
+    sentry_dsn: ""
+    sample_rate: 1.0
+    traces_sample_rate: 0.1
+
+  # Logging
+  logging:
+    level: "INFO"              # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format: "text"             # text, json
+    output: "stdout"           # stdout, file, both
+    file_path: "/var/log/seo-platform/app.log"
+    max_file_size_mb: 100
+    backup_count: 5
+
+  # Metrics collection
+  metrics:
+    enabled: true
+    collect_system_metrics: true
+    collect_application_metrics: true
+    collect_database_metrics: true
+    prometheus_enabled: true
+
+# ============================================================================
+# Integrations
+# ============================================================================
+
+integrations:
+  # Grafana
+  grafana:
+    enabled: true
+    url: "http://localhost:3000"
+    auto_provision_dashboards: true
+    auto_provision_datasources: true
+
+  # Ollama (Local LLM)
+  ollama:
+    enabled: true
+    base_url: "http://localhost:11434"
+    model: "llama2"
+    temperature: 0.7
+    max_tokens: 2000
+    timeout_seconds: 60
+
+  # LangChain
+  langchain:
+    tracing_enabled: false
+    callbacks_enabled: true
+    cache_enabled: true
+
+  # Redis (Event Streams)
+  redis:
+    enabled: true
+    url: "redis://localhost:6379"
+    max_connections: 50
+    decode_responses: true
+
+# ============================================================================
+# Development & Debugging
+# ============================================================================
+
+development:
+  # Debug settings
+  debug_mode: false
+  verbose_logging: false
+  sql_echo: false
+
+  # Testing
+  testing:
+    use_test_database: false
+    test_database_name: "seo_warehouse_test"
+    mock_external_apis: false
+
+  # Development tools
+  tools:
+    enable_profiler: false
+    enable_query_analyzer: false
+    enable_memory_profiler: false
+
+# ============================================================================
+# Experimental Features
+# ============================================================================
+
+experimental:
+  # These features are experimental and may change
+
+  # Auto-PR generation
+  auto_pr_generation:
+    enabled: false
+    require_approval: true
+    max_prs_per_day: 3
+
+  # Advanced forecasting
+  ensemble_forecasting:
+    enabled: false
+    models:
+      - prophet
+      - arima
+      - exponential_smoothing
+
+  # Natural language interface
+  nl_interface:
+    enabled: false
+    supported_languages:
+      - english
+
+  # Content generation
+  ai_content_generation:
+    enabled: false
+    max_generations_per_day: 10
