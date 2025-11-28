@@ -188,7 +188,7 @@ Access dashboards at: `http://localhost:3000` (default credentials: admin/admin)
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Architecture Details**: [System Architecture](docs/analysis/TECHNICAL_ARCHITECTURE.md) | [System Overview](docs/analysis/SYSTEM_OVERVIEW.md)
+**Architecture Details**: [System Architecture](docs/ARCHITECTURE.md) | [Data Model Reference](docs/DATA_MODEL.md)
 
 ---
 
@@ -229,7 +229,7 @@ Access dashboards at: `http://localhost:3000` (default credentials: admin/admin)
 4. **Scheduled Tasks** - Daily/weekly/hourly automated workflows
 5. **Visual Dashboards** - Grafana displays 5 live dashboards
 
-**Learn More**: [Multi-Agent System](docs/analysis/MULTI_AGENT_SYSTEM.md) | [Insight Engine Guide](docs/analysis/INSIGHT_ENGINE_GUIDE.md) | [Dashboard Guide](docs/analysis/DASHBOARD_GUIDE.md)
+**Learn More**: [Multi-Agent System](docs/guides/MULTI_AGENT_SYSTEM.md) | [Insight Engine Guide](docs/guides/INSIGHT_ENGINE_GUIDE.md) | [Dashboard Guide](docs/guides/DASHBOARD_GUIDE.md)
 
 ---
 
@@ -551,16 +551,17 @@ pytest --cov=. --cov-report=html
 - **[MCP Integration](docs/guides/MCP_INTEGRATION.md)** - Model Context Protocol
 
 ### 🤖 AI & Analytics Features
-- **[Multi-Agent System](docs/analysis/MULTI_AGENT_SYSTEM.md)** - AI agent architecture (10 agents)
-- **[Insight Engine Guide](docs/analysis/INSIGHT_ENGINE_GUIDE.md)** - Analytics engine overview
+- **[Multi-Agent System](docs/guides/MULTI_AGENT_SYSTEM.md)** - AI agent architecture (10 agents)
+- **[Insight Engine Guide](docs/guides/INSIGHT_ENGINE_GUIDE.md)** - Analytics engine overview
 - **[Hugo Content Optimizer](docs/guides/HUGO_CONTENT_OPTIMIZER.md)** - LLM-powered content optimization
-- **[Dashboard Guide](docs/analysis/DASHBOARD_GUIDE.md)** - Grafana dashboard usage
+- **[Dashboard Guide](docs/guides/DASHBOARD_GUIDE.md)** - Grafana dashboard usage
 - **[SERP Tracking Guide](docs/SERP_TRACKING_GUIDE.md)** - Position monitoring
 - **[Detector Guide](docs/guides/DETECTOR_GUIDE.md)** - Writing custom detectors
+- **[URL Discovery Guide](docs/guides/URL_DISCOVERY_GUIDE.md)** - Automatic URL discovery and monitoring
 
-### 📊 System Architecture
-- **[System Overview](docs/analysis/SYSTEM_OVERVIEW.md)** - High-level architecture
-- **[Technical Architecture](docs/analysis/TECHNICAL_ARCHITECTURE.md)** - Detailed design
+### 📊 System Architecture & Data Model
+- **[System Architecture](docs/ARCHITECTURE.md)** - Complete system architecture
+- **[Data Model Reference](docs/DATA_MODEL.md)** - Complete schema reference (44+ tables)
 - **[Architecture Patterns](docs/ARCHITECTURE_PATTERNS.md)** - Design patterns used
 - **[Unified View Guide](docs/guides/UNIFIED_VIEW_GUIDE.md)** - Hybrid data layer
 
