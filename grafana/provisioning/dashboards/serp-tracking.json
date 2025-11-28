@@ -18,13 +18,44 @@
   "graphTooltip": 1,
   "id": null,
   "links": [
-    {"asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["seo"], "targetBlank": true, "title": "SEO Dashboards", "type": "dashboards"},
-    {"icon": "dashboard", "title": "GSC Overview", "type": "link", "url": "/d/gsc-overview", "targetBlank": true}
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "seo"
+      ],
+      "targetBlank": true,
+      "title": "SEO Dashboards",
+      "type": "dashboards"
+    },
+    {
+      "icon": "dashboard",
+      "title": "GSC Overview",
+      "type": "link",
+      "url": "/d/gsc-overview",
+      "targetBlank": true
+    }
   ],
   "panels": [
-    {"id": 100, "title": "Position Overview", "type": "row", "gridPos": {"h": 1, "w": 24, "x": 0, "y": -1}, "collapsed": false},
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "id": 100,
+      "title": "Position Overview",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": -1
+      },
+      "collapsed": false
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -60,7 +91,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -79,7 +112,9 @@
           "select": [
             [
               {
-                "params": ["*"],
+                "params": [
+                  "*"
+                ],
                 "type": "column"
               }
             ]
@@ -93,7 +128,10 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -134,7 +172,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -156,7 +196,10 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -196,7 +239,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -218,7 +263,10 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -258,7 +306,9 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -279,20 +329,63 @@
       "title": "Position Gains (7d)",
       "type": "stat"
     },
-    {"id": 200, "title": "Data Source Overview", "type": "row", "gridPos": {"h": 1, "w": 24, "x": 0, "y": 4}, "collapsed": false},
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "id": 200,
+      "title": "Data Source Overview",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "collapsed": false
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "#56A64B", "value": null}]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#56A64B",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 5},
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 5
+      },
       "id": 201,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {}, "textMode": "auto"},
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
       "pluginVersion": "9.0.0",
       "targets": [
         {
@@ -306,18 +399,50 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "#3274D9", "value": null}]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3274D9",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 5},
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 5
+      },
       "id": 202,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {}, "textMode": "auto"},
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
       "pluginVersion": "9.0.0",
       "targets": [
         {
@@ -331,23 +456,57 @@
       "type": "stat"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"hideFrom": {"legend": false, "tooltip": false, "viz": false}},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
           "mappings": []
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 5},
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 5
+      },
       "id": 203,
       "options": {
-        "displayLabels": ["percent", "value"],
-        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+        "displayLabels": [
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
         "pieType": "donut",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
-        "tooltip": {"mode": "single"}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
       },
       "targets": [
         {
@@ -361,21 +520,82 @@
       "type": "piechart"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
-          "custom": {"align": "auto", "displayMode": "auto"},
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#73BF69",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Position Diff"}, "properties": [{"id": "custom.displayMode", "value": "color-background"}, {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#73BF69", "value": null}, {"color": "#FADE2A", "value": 3}, {"color": "#F2495C", "value": 5}]}}]}
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position Diff"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#73BF69",
+                      "value": null
+                    },
+                    {
+                      "color": "#FADE2A",
+                      "value": 3
+                    },
+                    {
+                      "color": "#F2495C",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         ]
       },
-      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 5},
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
       "id": 204,
-      "options": {"footer": {"fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
       "pluginVersion": "9.0.0",
       "targets": [
         {
@@ -389,7 +609,10 @@
       "type": "table"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -445,7 +668,11 @@
       "id": 5,
       "options": {
         "legend": {
-          "calcs": ["last", "min", "max"],
+          "calcs": [
+            "last",
+            "min",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "right"
         },
@@ -464,7 +691,9 @@
           "select": [
             [
               {
-                "params": ["position"],
+                "params": [
+                  "position"
+                ],
                 "type": "column"
               }
             ]
@@ -493,7 +722,10 @@
       ]
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -567,7 +799,9 @@
       "options": {
         "footer": {
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -590,7 +824,9 @@
           "select": [
             [
               {
-                "params": ["*"],
+                "params": [
+                  "*"
+                ],
                 "type": "column"
               }
             ]
@@ -604,7 +840,10 @@
       "type": "table"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -678,7 +917,9 @@
       "options": {
         "footer": {
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -704,7 +945,10 @@
       "type": "table"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -737,7 +981,9 @@
       "options": {
         "footer": {
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
@@ -757,7 +1003,10 @@
       "type": "table"
     },
     {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-gsc"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -790,7 +1039,9 @@
       "options": {
         "footer": {
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true
@@ -808,120 +1059,16 @@
       ],
       "title": "Top Competitors",
       "type": "table"
-    },
-    {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 35
-      },
-      "id": 10,
-      "options": {
-        "displayLabels": ["percent"],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "values": ["value", "percent"]
-        },
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      },
-      "targets": [
-        {
-          "format": "table",
-          "group": [],
-          "metricColumn": "none",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  CASE\n    WHEN position <= 3 THEN 'Top 3'\n    WHEN position <= 10 THEN 'Top 10'\n    WHEN position <= 20 THEN 'Top 20'\n    ELSE 'Beyond 20'\n  END as position_range,\n  COUNT(*) as count\nFROM serp.vw_current_positions\nWHERE property = '$property'\nGROUP BY position_range\nORDER BY CASE\n  WHEN position_range = 'Top 3' THEN 1\n  WHEN position_range = 'Top 10' THEN 2\n  WHEN position_range = 'Top 20' THEN 3\n  ELSE 4\nEND",
-          "refId": "A"
-        }
-      ],
-      "title": "Position Distribution",
-      "type": "piechart"
-    },
-    {
-      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "displayMode": "auto"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#73BF69",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 35
-      },
-      "id": 11,
-      "options": {
-        "footer": {
-          "fields": "",
-          "reducer": ["sum"],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "9.0.0",
-      "targets": [
-        {
-          "format": "table",
-          "group": [],
-          "metricColumn": "none",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  q.query_text as \"Query\",\n  sf.feature_type as \"Feature Type\",\n  sf.featured_domain as \"Featured Domain\",\n  sf.check_date as \"Date\"\nFROM serp.serp_features sf\nJOIN serp.queries q ON sf.query_id = q.query_id\nWHERE q.property = '$property'\n  AND sf.check_date >= CURRENT_DATE - INTERVAL '7 days'\nORDER BY sf.check_date DESC\nLIMIT 20",
-          "refId": "A"
-        }
-      ],
-      "title": "SERP Features",
-      "type": "table"
     }
   ],
   "refresh": "5m",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["serp", "seo", "rankings"],
+  "tags": [
+    "serp",
+    "seo",
+    "rankings"
+  ],
   "templating": {
     "list": [
       {
@@ -930,7 +1077,10 @@
           "text": "https://blog.aspose.net",
           "value": "https://blog.aspose.net"
         },
-        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-gsc"
+        },
         "definition": "SELECT DISTINCT property FROM serp.queries ORDER BY property",
         "hide": 0,
         "includeAll": false,
@@ -948,10 +1098,17 @@
       {
         "current": {
           "selected": true,
-          "text": ["All"],
-          "value": ["$__all"]
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
-        "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres-gsc"},
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-gsc"
+        },
         "definition": "SELECT DISTINCT COALESCE(data_source, 'manual') as data_source FROM serp.queries WHERE property = '$property' ORDER BY data_source",
         "hide": 0,
         "includeAll": true,
