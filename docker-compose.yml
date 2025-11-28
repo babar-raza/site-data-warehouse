@@ -342,6 +342,12 @@ services:
     depends_on:
       warehouse:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     profiles:
       - api
     restart: unless-stopped
@@ -535,28 +541,41 @@ services:
           cpus: '2.0'
 
   # ==========================================
-  # CADVISOR - CONTAINER METRICS
+  # DOCKER STATS EXPORTER - CONTAINER METRICS (Windows-compatible)
   # ==========================================
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: gsc_cadvisor
-    privileged: true
+  docker_stats_exporter:
+    build:
+      context: .
+      dockerfile: compose/dockerfiles/Dockerfile.docker_exporter
+    container_name: gsc_docker_stats_exporter
+    environment:
+      EXPORTER_PORT: 8003
+      POLL_INTERVAL: 15  # seconds
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
+      # Mount Docker socket (read-only) for stats collection
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/logs
     ports:
-      - "8080:8080"
+      - "8003:8003"
     networks:
       - gsc_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
           cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==========================================
   # POSTGRES EXPORTER - DATABASE METRICS

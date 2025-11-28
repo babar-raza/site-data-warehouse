@@ -47,7 +47,7 @@ cd gsc-data-warehouse
 
 ### 2. Create Environment File
 ```bash
-cp .env.template .env
+cp .env.example .env
 # Edit .env with your settings
 ```
 
@@ -61,8 +61,8 @@ GSC_PROPERTY=sc-domain:example.com
 ### 3. Setup Secrets
 ```bash
 mkdir -p secrets
-cp secrets/gsc_sa.json.template secrets/gsc_sa.json
-# Edit secrets/gsc_sa.json with your credentials
+# Place your Google service account JSON file in secrets/gsc_sa.json
+# Download the JSON from Google Cloud Console (see GCP Setup Guide)
 ```
 
 ### 4. Build Docker Images
