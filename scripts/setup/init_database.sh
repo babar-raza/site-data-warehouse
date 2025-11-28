@@ -99,11 +99,17 @@ SQL_FILES=(
     "13_content_schema.sql"
     "14_forecasts_schema.sql"
     "16_serp_schema.sql"
+    "16a_serp_dual_source_migration.sql"
     "17_performance_schema.sql"
     "18_analytics_schema.sql"
     "20_notifications_schema.sql"
     "21_orchestration_schema.sql"
     "22_anomaly_schema.sql"
+    "23_url_variations_schema.sql"
+    "25_url_consolidation_schema.sql"
+    "26_trends_schema.sql"
+    "29_hugo_content_schema.sql"
+    "30_monitored_pages_schema.sql"
 )
 
 for sql_file in "${SQL_FILES[@]}"; do

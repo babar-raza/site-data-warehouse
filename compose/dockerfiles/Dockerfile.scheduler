@@ -42,6 +42,7 @@ COPY --chown=appuser:appuser scheduler/ /app/scheduler/
 COPY --chown=appuser:appuser ingestors/ /app/ingestors/
 COPY --chown=appuser:appuser transform/ /app/transform/
 COPY --chown=appuser:appuser scripts/ /app/scripts/
+COPY --chown=appuser:appuser config/ /app/config/
 
 # Create necessary directories
 RUN mkdir -p /logs && \

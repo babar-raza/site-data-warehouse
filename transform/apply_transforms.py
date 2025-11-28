@@ -19,6 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Transform files in application order
+# Note: 01_schema.sql and 00_*.sql should be applied separately during initial setup
 TRANSFORM_FILES = [
     'sql/03_transforms.sql',  # Base transforms and views
     'sql/04_ga4_schema.sql',  # GA4 tables
@@ -29,6 +30,25 @@ TRANSFORM_FILES = [
     'sql/09_agent_recommendations.sql',  # Agent recommendations table
     'sql/10_agent_executions.sql',  # Agent execution tracking
     'sql/11_insights_table.sql',  # Insights table for Unified Insight Engine
+    'sql/12_actions_schema.sql',  # Actions schema
+    'sql/13_content_schema.sql',  # Content schema
+    'sql/14_forecasts_schema.sql',  # Forecasts schema
+    'sql/16_serp_schema.sql',  # SERP tracking schema
+    'sql/16a_serp_dual_source_migration.sql',  # SERP dual-source migration
+    'sql/17_performance_schema.sql',  # Performance/CWV base schema
+    'sql/18_analytics_schema.sql',  # Analytics schema
+    'sql/19_automation_schema.sql',  # Automation schema
+    'sql/20_notifications_schema.sql',  # Notifications schema
+    'sql/21_orchestration_schema.sql',  # Orchestration schema
+    'sql/22_anomaly_schema.sql',  # Anomaly detection schema
+    'sql/23_url_variations_schema.sql',  # URL variations schema
+    'sql/24_insight_aggregation_views.sql',  # Insight aggregation views
+    'sql/25_url_consolidation_schema.sql',  # URL consolidation schema
+    'sql/26_trends_schema.sql',  # Google Trends schema
+    'sql/27_actions_schema.sql',  # Actions schema (extended)
+    'sql/28_actions_metrics_views.sql',  # Actions metrics views
+    'sql/29_hugo_content_schema.sql',  # Hugo content tracking schema
+    'sql/30_monitored_pages_schema.sql',  # CWV monitored pages for URL discovery sync
 ]
 
 def get_db_connection():
