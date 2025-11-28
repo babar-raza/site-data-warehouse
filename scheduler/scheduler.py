@@ -7,7 +7,7 @@ Schedules:
 - Daily: API ingestion, transforms, insights refresh, watermark advancement
 - Weekly: Reconciliation (re-check last 7 days via API), cannibalization refresh
 
-Version: 2.0 (Added insights refresh)
+Version: 2.1 (Config-driven schedules from scheduler_config.yaml)
 """
 
 import os
@@ -21,6 +21,7 @@ from apscheduler.triggers.cron import CronTrigger
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import json
+import yaml
 
 # Configure logging
 log_handlers = [logging.StreamHandler(sys.stdout)]
@@ -44,6 +45,42 @@ logger = logging.getLogger(__name__)
 # Configuration
 WAREHOUSE_DSN = os.environ.get('WAREHOUSE_DSN', 'postgresql://gsc_user:gsc_pass@warehouse:5432/gsc_db')
 METRICS_FILE = os.path.join(log_dir, 'scheduler_metrics.json')
+
+# Config file paths (check multiple locations)
+CONFIG_PATHS = [
+    '/app/config/scheduler_config.yaml',  # Docker container path
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'scheduler_config.yaml'),  # Relative to scheduler.py
+    'config/scheduler_config.yaml',  # Relative to cwd
+]
+
+def load_scheduler_config():
+    """Load scheduler configuration from YAML file"""
+    for config_path in CONFIG_PATHS:
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r') as f:
+                    config = yaml.safe_load(f)
+                    logger.info(f"Loaded scheduler config from: {config_path}")
+                    return config
+            except Exception as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
+
+    # Return default config if no file found
+    logger.warning("No scheduler config file found, using defaults")
+    return {
+        'daily_pipeline': {
+            'enabled': True,
+            'schedule': {'hour': 7, 'minute': 0}
+        },
+        'weekly_maintenance': {
+            'enabled': True,
+            'schedule': {'day_of_week': 'monday', 'hour': 7, 'minute': 0}
+        },
+        'insights_refresh': {
+            'enabled': True,
+            'schedule': {'hours': [1, 13, 19], 'minute': 0}
+        }
+    }
 
 # Metrics tracking
 metrics = {
@@ -265,6 +302,125 @@ def run_cwv_collection():
         ['python', '/app/scripts/collect_cwv_data.py'],
         'cwv_collection'
     )
+
+def run_url_discovery_sync():
+    """
+    Run URL discovery sync from GSC/GA4 to CWV monitored pages.
+
+    Discovers URLs with traffic from GSC and GA4 and adds them to
+    performance.monitored_pages for CWV monitoring.
+
+    This runs AFTER GA4 collection and BEFORE CWV collection to ensure
+    newly discovered URLs get their CWV data collected.
+
+    Non-blocking: failure doesn't affect rest of pipeline.
+    """
+    start_time = time.time()
+    logger.info("=" * 60)
+    logger.info("Starting URL discovery sync...")
+    logger.info("=" * 60)
+
+    if not check_warehouse_health():
+        logger.warning("Skipping URL discovery sync - warehouse not healthy")
+        update_metrics('url_discovery_sync', 'skipped', error='Warehouse unhealthy')
+        return False
+
+    try:
+        # Import here to avoid circular dependencies
+        from insights_core.url_discovery_sync import URLDiscoverySync, SyncConfig
+
+        # Load config from scheduler config if available
+        config = load_scheduler_config()
+        sync_config_dict = config.get('url_discovery_sync', {})
+
+        # Check if enabled
+        if not sync_config_dict.get('enabled', True):
+            logger.info("URL discovery sync is disabled in config")
+            update_metrics('url_discovery_sync', 'skipped', time.time() - start_time,
+                          error='Disabled in config')
+            return True
+
+        # Create sync config
+        sync_config = SyncConfig(
+            min_gsc_clicks=sync_config_dict.get('min_gsc_clicks', 10),
+            min_ga4_sessions=sync_config_dict.get('min_ga4_sessions', 5),
+            lookback_days=sync_config_dict.get('lookback_days', 30),
+            stale_threshold_days=sync_config_dict.get('stale_threshold_days', 90),
+            check_mobile=sync_config_dict.get('check_mobile', True),
+            check_desktop=sync_config_dict.get('check_desktop', False),
+            max_new_urls_per_run=sync_config_dict.get('max_new_urls_per_run', 100),
+        )
+
+        # Initialize sync
+        sync = URLDiscoverySync(db_dsn=WAREHOUSE_DSN, config=sync_config)
+
+        try:
+            # Sync all properties
+            results = sync.sync_all_properties(dry_run=False)
+        finally:
+            sync.close()
+
+        # Calculate duration
+        duration = time.time() - start_time
+
+        # Calculate totals
+        total_discovered = sum(r.urls_discovered for r in results if r.success)
+        total_new = sum(r.urls_new for r in results if r.success)
+        total_updated = sum(r.urls_updated for r in results if r.success)
+        total_deactivated = sum(r.urls_deactivated for r in results if r.success)
+        failed_count = sum(1 for r in results if not r.success)
+
+        # Log results
+        logger.info("=" * 60)
+        logger.info(f"URL discovery sync completed in {duration:.2f}s")
+        logger.info(f"Properties processed: {len(results)}")
+        logger.info(f"URLs discovered: {total_discovered}")
+        logger.info(f"New URLs added: {total_new}")
+        logger.info(f"URLs updated: {total_updated}")
+        logger.info(f"Stale URLs deactivated: {total_deactivated}")
+        logger.info(f"Failed: {failed_count}")
+
+        if results:
+            logger.info("Breakdown by property:")
+            for result in results:
+                if result.success:
+                    logger.info(f"  {result.property}: {result.urls_discovered} discovered, "
+                               f"{result.urls_new} new, {result.urls_updated} updated")
+                else:
+                    logger.error(f"  {result.property}: FAILED - {result.error}")
+
+        logger.info("=" * 60)
+
+        # Update metrics
+        update_metrics(
+            'url_discovery_sync',
+            'success',
+            duration,
+            extra={
+                'properties_processed': len(results),
+                'urls_discovered': total_discovered,
+                'urls_new': total_new,
+                'urls_updated': total_updated,
+                'urls_deactivated': total_deactivated,
+                'failed_properties': failed_count
+            }
+        )
+
+        return True
+
+    except ImportError as e:
+        duration = time.time() - start_time
+        logger.error(f"Failed to import URLDiscoverySync: {e}")
+        logger.error("Make sure insights_core.url_discovery_sync is installed")
+        update_metrics('url_discovery_sync', 'failed', duration, str(e))
+        return False
+
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(f"URL discovery sync failed: {e}", exc_info=True)
+        update_metrics('url_discovery_sync', 'failed', duration, str(e))
+        return False
+
 
 def run_transforms():
     """Apply SQL transforms to create views"""
@@ -1019,16 +1175,18 @@ def daily_pipeline():
     1. API Ingestion (GSC data)
     2. GA4 Collection
     3. SERP Collection (API-based - SerpStack/ValueSERP/SerpAPI)
-    4. GSC SERP Sync (free position tracking from GSC data)
+    4. URL Discovery Sync (discover URLs from GSC/GA4 for CWV monitoring)
     5. CWV Collection
     6. SQL Transforms (refresh views with new data)
-    7. Insights Refresh (generate insights from fresh data)
-    8. Hugo Sync (track content changes)
-    9. Content Action Execution
-    10. Trends Collection (collect Google Trends data)
-    11. Watermark Check
+    7. GSC SERP Sync (free position tracking from GSC data)
+    8. Insights Refresh (generate insights from fresh data)
+    9. Hugo Sync (track content changes)
+    10. Content Action Execution
+    11. Trends Collection (collect Google Trends data)
+    12. Watermark Check
 
-    Insights, Hugo sync, GSC SERP sync, and Trends collection failures are non-blocking.
+    URL Discovery Sync ensures all clicked/viewed URLs are monitored for CWV.
+    Insights, Hugo sync, GSC SERP sync, URL Discovery, and Trends failures are non-blocking.
     """
     logger.info("=" * 60)
     logger.info("Starting DAILY pipeline - API-ONLY MODE")
@@ -1042,8 +1200,6 @@ def daily_pipeline():
         ('API Ingestion', run_api_ingestion),
         ('GA4 Collection', run_ga4_collection),
         ('SERP Collection', run_serp_collection),
-        ('CWV Collection', run_cwv_collection),
-        ('SQL Transforms', run_transforms),
     ]
 
     results = {}
@@ -1051,6 +1207,28 @@ def daily_pipeline():
         logger.info(f"\n--- {task_name} ---")
         results[task_name] = task_func()
         time.sleep(2)  # Small delay between tasks
+
+    # Run URL Discovery Sync (non-blocking - discovers URLs for CWV monitoring)
+    # This runs AFTER GSC/GA4 ingestion to discover new URLs with traffic
+    logger.info(f"\n--- URL Discovery Sync ---")
+    url_discovery_success = run_url_discovery_sync()
+    if not url_discovery_success:
+        logger.error("URL discovery sync failed, but continuing pipeline...")
+        logger.info("Pipeline will continue - URL discovery sync is non-blocking")
+    results['URL Discovery Sync'] = url_discovery_success
+    time.sleep(2)
+
+    # Run CWV Collection (now with newly discovered URLs)
+    logger.info(f"\n--- CWV Collection ---")
+    cwv_success = run_cwv_collection()
+    results['CWV Collection'] = cwv_success
+    time.sleep(2)
+
+    # Run SQL Transforms
+    logger.info(f"\n--- SQL Transforms ---")
+    transforms_success = run_transforms()
+    results['SQL Transforms'] = transforms_success
+    time.sleep(2)
 
     # Run GSC SERP sync (non-blocking - syncs position data from GSC)
     # This runs AFTER GSC ingestion to use fresh GSC data
@@ -1181,6 +1359,8 @@ def main():
                        help='Run only watermark reconciliation and exit (for testing)')
     parser.add_argument('--test-gsc-serp', action='store_true',
                        help='Run only GSC SERP sync and exit (for testing)')
+    parser.add_argument('--test-url-discovery', action='store_true',
+                       help='Run only URL discovery sync and exit (for testing)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Show scheduled jobs without starting scheduler')
     args = parser.parse_args()
@@ -1226,47 +1406,83 @@ def main():
         success = run_gsc_serp_sync()
         sys.exit(0 if success else 1)
 
+    if args.test_url_discovery:
+        logger.info("TEST MODE: Running URL discovery sync only")
+        success = run_url_discovery_sync()
+        sys.exit(0 if success else 1)
+
+    # Load configuration from file
+    config = load_scheduler_config()
+
+    # Extract schedule settings from config
+    daily_config = config.get('daily_pipeline', {})
+    daily_schedule = daily_config.get('schedule', {})
+    daily_hour = daily_schedule.get('hour', 7)
+    daily_minute = daily_schedule.get('minute', 0)
+    daily_enabled = daily_config.get('enabled', True)
+
+    weekly_config = config.get('weekly_maintenance', {})
+    weekly_schedule = weekly_config.get('schedule', {})
+    weekly_day = weekly_schedule.get('day_of_week', 'monday')
+    weekly_hour = weekly_schedule.get('hour', 7)
+    weekly_minute = weekly_schedule.get('minute', 0)
+    weekly_enabled = weekly_config.get('enabled', True)
+
+    insights_config = config.get('insights_refresh', {})
+    insights_schedule = insights_config.get('schedule', {})
+    insights_hours = insights_schedule.get('hours', [1, 13, 19])
+    insights_minute = insights_schedule.get('minute', 0)
+    insights_enabled = insights_config.get('enabled', True)
+
+    # Convert day_of_week string to APScheduler format
+    day_map = {'monday': 'mon', 'tuesday': 'tue', 'wednesday': 'wed',
+               'thursday': 'thu', 'friday': 'fri', 'saturday': 'sat', 'sunday': 'sun'}
+    weekly_day_cron = day_map.get(weekly_day.lower(), weekly_day) if isinstance(weekly_day, str) else weekly_day
+
     # Production scheduler
     scheduler = BlockingScheduler()
-    
-    # Daily pipeline at 7 AM UTC (12 PM Pakistan Standard Time, UTC+5)
-    scheduler.add_job(
-        daily_pipeline,
-        CronTrigger(hour=7, minute=0),
-        id='daily_pipeline',
-        name='Daily Pipeline',
-        replace_existing=True
-    )
-    
-    # Weekly maintenance on Mondays at 7 AM UTC (12 PM PKT)
-    scheduler.add_job(
-        weekly_maintenance,
-        CronTrigger(day_of_week='mon', hour=7, minute=0),
-        id='weekly_maintenance',
-        name='Weekly Maintenance',
-        replace_existing=True
-    )
 
-    # Insights refresh 4 times daily (every 6 hours)
-    # Q1: 1:00 AM UTC, Q2: 7:00 AM UTC (in daily pipeline), Q3: 1:00 PM UTC, Q4: 7:00 PM UTC
-    for hour in [1, 13, 19]:  # 7:00 AM is covered by daily pipeline
+    # Daily pipeline (schedule from config)
+    if daily_enabled:
         scheduler.add_job(
-            run_insights_refresh,
-            CronTrigger(hour=hour, minute=0),
-            id=f'insights_refresh_{hour:02d}',
-            name=f'Insights Refresh ({hour:02d}:00 UTC)',
+            daily_pipeline,
+            CronTrigger(hour=daily_hour, minute=daily_minute),
+            id='daily_pipeline',
+            name='Daily Pipeline',
             replace_existing=True
         )
-    
+
+    # Weekly maintenance (schedule from config)
+    if weekly_enabled:
+        scheduler.add_job(
+            weekly_maintenance,
+            CronTrigger(day_of_week=weekly_day_cron, hour=weekly_hour, minute=weekly_minute),
+            id='weekly_maintenance',
+            name='Weekly Maintenance',
+            replace_existing=True
+        )
+
+    # Insights refresh (schedule from config)
+    if insights_enabled:
+        for hour in insights_hours:
+            scheduler.add_job(
+                run_insights_refresh,
+                CronTrigger(hour=hour, minute=insights_minute),
+                id=f'insights_refresh_{hour:02d}',
+                name=f'Insights Refresh ({hour:02d}:00 UTC)',
+                replace_existing=True
+            )
+
     # Dry run mode - show jobs and exit
     if args.dry_run:
         logger.info("=" * 60)
-        logger.info("DRY RUN MODE - Scheduled Jobs")
+        logger.info("DRY RUN MODE - Scheduled Jobs (from config)")
         logger.info("=" * 60)
-        logger.info("Daily pipeline (7:00 AM UTC / 12:00 PM PKT):")
+        logger.info(f"Daily pipeline ({daily_hour:02d}:{daily_minute:02d} UTC):")
         logger.info("  - API Ingestion (GSC)")
         logger.info("  - GA4 Collection")
         logger.info("  - SERP Collection (API-based: SerpStack/ValueSERP/SerpAPI)")
+        logger.info("  - URL Discovery Sync (auto-discover URLs from GSC/GA4 for CWV)")
         logger.info("  - CWV Collection")
         logger.info("  - SQL Transforms")
         logger.info("  - GSC SERP Sync (free position tracking from GSC data)")
@@ -1276,21 +1492,28 @@ def main():
         logger.info("  - Trends Collection")
         logger.info("  - Watermark Check")
         logger.info("")
-        logger.info("Weekly maintenance (Monday 7:00 AM UTC / 12:00 PM PKT):")
+        logger.info(f"Weekly maintenance ({weekly_day.capitalize()} {weekly_hour:02d}:{weekly_minute:02d} UTC):")
         logger.info("  - Watermark Reconciliation (fixes gaps where watermarks ahead of data)")
         logger.info("  - Data Reconciliation")
         logger.info("  - SQL Transforms Refresh")
         logger.info("  - Cannibalization Refresh")
         logger.info("  - Content Analysis")
+        logger.info("")
+        if insights_enabled:
+            insights_times = ', '.join([f'{h:02d}:00' for h in insights_hours])
+            logger.info(f"Insights refresh: {insights_times} UTC")
         logger.info("=" * 60)
         sys.exit(0)
 
+    # Format schedule info for logging
+    insights_times = ', '.join([f'{h:02d}:00' for h in insights_hours]) if insights_enabled else 'disabled'
+
     logger.info("=" * 60)
     logger.info("GSC Warehouse Scheduler started (API-ONLY MODE)")
-    logger.info("Daily pipeline: 7:00 AM UTC / 12:00 PM PKT (GSC + GA4 + SERP API + GSC SERP + CWV + transforms + insights)")
+    logger.info(f"Daily pipeline: {daily_hour:02d}:{daily_minute:02d} UTC (GSC + GA4 + SERP API + GSC SERP + CWV + transforms + insights)")
     logger.info("SERP Tracking: Dual-source (API: SerpStack/ValueSERP + Free: GSC-based)")
-    logger.info("Insights refresh: 4x daily at 1:00, 7:00, 13:00, 19:00 UTC")
-    logger.info("Weekly maintenance: Monday 7:00 AM UTC / 12:00 PM PKT (reconciliation + cannibalization + content analysis)")
+    logger.info(f"Insights refresh: {insights_times} UTC")
+    logger.info(f"Weekly maintenance: {weekly_day.capitalize()} {weekly_hour:02d}:{weekly_minute:02d} UTC (reconciliation + cannibalization + content analysis)")
     logger.info("=" * 60)
     
     try:

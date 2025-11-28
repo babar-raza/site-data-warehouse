@@ -9,10 +9,10 @@
 # ============================================================================
 
 daily_pipeline:
-  # Daily pipeline runs at 9:00 AM UTC
+  # Daily pipeline runs at 7:00 AM UTC (12:00 PM PKT)
   enabled: true
   schedule:
-    hour: 9
+    hour: 7
     minute: 0
 
   tasks:
@@ -34,6 +34,12 @@ daily_pipeline:
       retry_on_failure: true
       max_retries: 3
       # Skips gracefully if SERPSTACK_API_KEY not configured
+
+    # URL Discovery Sync - Auto-discover URLs from GSC/GA4 for CWV monitoring
+    url_discovery_sync:
+      enabled: true
+      non_blocking: true  # Failure doesn't stop pipeline
+      retry_on_failure: false
 
     # CWV Collection - Core Web Vitals monitoring
     cwv_collection:
@@ -72,11 +78,11 @@ daily_pipeline:
 # ============================================================================
 
 weekly_maintenance:
-  # Weekly maintenance runs on Sundays at 3:00 AM UTC
+  # Weekly maintenance runs on Mondays at 7:00 AM UTC (12:00 PM PKT)
   enabled: true
   schedule:
-    day_of_week: sunday  # 0 = Monday, 6 = Sunday
-    hour: 3
+    day_of_week: monday  # 0 = Monday, 6 = Sunday
+    hour: 7
     minute: 0
 
   tasks:
@@ -140,6 +146,40 @@ hugo_sync:
     max_errors: 10
 
 # ============================================================================
+# URL Discovery Sync Configuration
+# ============================================================================
+
+url_discovery_sync:
+  # Automatically discover URLs from GSC and GA4 for CWV monitoring
+  # Ensures every clicked/viewed page has CWV data collected
+  enabled: true
+
+  # Thresholds for URL discovery
+  min_gsc_clicks: 10          # Minimum clicks in period to be monitored
+  min_ga4_sessions: 5         # Minimum sessions in period to be monitored
+  lookback_days: 30           # Days to look back for activity
+  stale_threshold_days: 90    # Deactivate URLs not seen in this many days
+
+  # CWV defaults for newly discovered URLs
+  check_mobile: true          # Enable mobile CWV checks
+  check_desktop: false        # Desktop off by default (saves API quota)
+
+  # Rate limiting
+  max_new_urls_per_run: 100   # Limit new URLs per sync run (prevent quota issues)
+
+# ============================================================================
+# Insights Refresh Configuration
+# ============================================================================
+
+insights_refresh:
+  # Insights refresh runs 4 times daily (every 6 hours)
+  # Note: 7:00 AM UTC is covered by daily pipeline
+  enabled: true
+  schedule:
+    hours: [1, 13, 19]  # 1:00 AM, 1:00 PM, 7:00 PM UTC (7:00 AM in daily pipeline)
+    minute: 0
+
+# ============================================================================
 # Test Mode Configuration
 # ============================================================================
 
@@ -161,6 +201,10 @@ test_modes:
   test_hugo:
     description: "Run only Hugo sync and exit"
     command: "python scheduler/scheduler.py --test-hugo"
+
+  test_url_discovery:
+    description: "Run only URL discovery sync and exit"
+    command: "python scheduler/scheduler.py --test-url-discovery"
 
   dry_run:
     description: "Show scheduled jobs without starting scheduler"
@@ -207,8 +251,9 @@ error_handling:
   non_blocking_tasks:
     - insights_refresh
     - hugo_sync
-    - serp_collection  # Non-critical if API key not configured
-    - cwv_collection   # Non-critical if API key not configured
+    - serp_collection      # Non-critical if API key not configured
+    - cwv_collection       # Non-critical if API key not configured
+    - url_discovery_sync   # Non-critical, CWV continues with existing pages
 
   # Retry configuration
   retry:
