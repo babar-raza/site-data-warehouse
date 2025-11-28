@@ -1,6 +1,18 @@
 # Phase 1 Quick Start Guide
 
-## 5-Minute Setup
+> **⚠️ DEPRECATED - Phase Terminology Obsolete**
+>
+> This guide uses deprecated "Phase 1" terminology. Please use the feature-based guides instead:
+> - **Main Quick Start**: [QUICKSTART.md](../QUICKSTART.md) - 15-minute deployment
+> - **Content Intelligence**: [CONTENT_INTELLIGENCE_GUIDE.md](CONTENT_INTELLIGENCE_GUIDE.md)
+> - **URL Discovery**: [URL_DISCOVERY_GUIDE.md](URL_DISCOVERY_GUIDE.md)
+> - **Multi-Agent System**: [MULTI_AGENT_SYSTEM.md](MULTI_AGENT_SYSTEM.md)
+>
+> This document remains for historical reference only.
+
+---
+
+## 5-Minute Setup (Deprecated - Use QUICKSTART.md)
 
 Get started with AI-powered content intelligence in minutes.
 

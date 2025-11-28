@@ -1446,7 +1446,7 @@ echo "Rollback complete. System reverted to GSC-only mode."
 - **GA4 API Documentation**: https://developers.google.com/analytics/devguides/reporting/data/v1
 - **Service Account Setup**: `deployment/guides/GCP_SETUP_GUIDE.md`
 - **Troubleshooting Guide**: `docs/TROUBLESHOOTING.md`
-- **Architecture Overview**: `docs/analysis/PROJECT_SUMMARY.md`
+- **Architecture Overview**: `docs/ARCHITECTURE.md`
 
 ### Key Files
 - **GA4 Extractor**: `ingestors/ga4/ga4_extractor.py`

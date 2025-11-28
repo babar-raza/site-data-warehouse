@@ -13,9 +13,8 @@
 2. **Google Cloud Service Account**
    - Create service account in Google Cloud Console
    - Grant permissions:
-     - BigQuery Data Viewer
-     - BigQuery Job User
-     - Search Console API access
+     - Google Search Console API access
+     - Google Analytics Data API access (for GA4 integration)
    - Download JSON key file
 
 ### Step 1: Setup Credentials
@@ -23,10 +22,11 @@
 1. Place your Google Cloud service account JSON file in `secrets/gsc_sa.json`
    - You can use `secrets/gsc_sa.json.template` as reference
 
-2. Edit `.env` file with your GCP project details:
+2. Edit `.env` file with your configuration:
    ```
    GCP_PROJECT_ID=your-actual-project-id
-   BQ_DATASET=your-bigquery-dataset
+   GSC_PROPERTY=sc-domain:yoursite.com
+   GA4_PROPERTY_ID=123456789
    ```
 
 ### Step 2: Deploy
@@ -50,8 +50,8 @@ deploy.bat
 
 2. Start data collection manually:
 ```batch
-docker compose --profile ingestion run --rm bq_extractor python bq_extractor.py
-docker compose --profile ingestion run --rm api_ingestor python gsc_api_ingestor.py
+docker compose --profile core run --rm api_ingestor python gsc_api_ingestor.py
+docker compose --profile core run --rm ga4_ingestor python ga4_ingestor.py
 docker compose --profile transform run --rm transformer python apply_transforms.py
 ```
 
@@ -93,8 +93,8 @@ After deployment, the following services will be available:
 ### Automated Schedules
 
 The scheduler runs:
-- **Daily at 02:00 UTC**: API ingestion
-- **Sunday at 03:00 UTC**: Weekly reconciliation and BigQuery sync
+- **Daily at 07:00 UTC**: API ingestion (GSC + GA4), URL discovery, transforms, insights refresh
+- **Weekly (Monday 07:00 UTC)**: Watermark reconciliation, cannibalization refresh, cleanup
 
 ### Stopping Services
 
@@ -161,11 +161,12 @@ chmod +x *.sh
 2. Increase Docker memory allocation (Docker Desktop settings)
 3. Clean Docker cache: `docker system prune -a`
 
-### Issue: "BigQuery/API ingestion fails"
+### Issue: "API ingestion fails"
 **Solution**:
 1. Verify service account permissions in Google Cloud Console
-2. Check `.env` file has correct GCP_PROJECT_ID and BQ_DATASET
+2. Check `.env` file has correct GSC_PROPERTY and GA4_PROPERTY_ID
 3. Verify `secrets/gsc_sa.json` is valid JSON
+4. Ensure service account is added to GSC properties and GA4 properties
 
 ### Issue: "Warehouse connection refused"
 **Solution**:
@@ -209,7 +210,7 @@ MAX_ROWS=100000               # maximum rows processed per run
 
 ### Mode 1: One-Time Manual Collection
 ```batch
-docker compose --profile ingestion up bq_extractor api_ingestor
+docker compose --profile core up api_ingestor ga4_ingestor
 ```
 
 ### Mode 2: Automated Scheduled Collection

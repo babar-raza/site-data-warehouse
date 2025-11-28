@@ -752,5 +752,5 @@ Your deployment is successful when:
 
 **Next Steps:**
 - Review [docs/QUICKSTART.md](QUICKSTART.md) for feature tutorials
-- Explore [docs/analysis/DASHBOARD_GUIDE.md](analysis/DASHBOARD_GUIDE.md) for dashboard usage
-- Read [docs/analysis/MULTI_AGENT_SYSTEM.md](analysis/MULTI_AGENT_SYSTEM.md) for AI agent workflows
+- Explore [docs/guides/DASHBOARD_GUIDE.md](../guides/DASHBOARD_GUIDE.md) for dashboard usage
+- Read [docs/guides/MULTI_AGENT_SYSTEM.md](../guides/MULTI_AGENT_SYSTEM.md) for AI agent workflows

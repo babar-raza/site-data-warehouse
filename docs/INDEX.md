@@ -28,6 +28,7 @@
 ### Architecture & Design
 - **[ARCHITECTURE](ARCHITECTURE.md)** - System design and components
 - **[ARCHITECTURE_PATTERNS](ARCHITECTURE_PATTERNS.md)** - Design patterns used
+- **[DATA_MODEL](DATA_MODEL.md)** - Complete database schema reference (44+ tables)
 - **[guides/UNIFIED_VIEW_GUIDE](guides/UNIFIED_VIEW_GUIDE.md)** - Deep dive into hybrid data layer
 - **[api/API_REFERENCE](api/API_REFERENCE.md)** - API endpoints and schemas
 
@@ -37,20 +38,25 @@
 - **[QUICK_REFERENCE](QUICK_REFERENCE.md)** - Quick command reference
 
 ### Insight Engine & Multi-Agent System
-- **[analysis/INSIGHT_ENGINE_GUIDE](analysis/INSIGHT_ENGINE_GUIDE.md)** - Complete Insight Engine documentation
-- **[analysis/MULTI_AGENT_SYSTEM](analysis/MULTI_AGENT_SYSTEM.md)** - Multi-Agent System architecture and usage
-- **[analysis/SYSTEM_OVERVIEW](analysis/SYSTEM_OVERVIEW.md)** - System overview and data flows
-- **[analysis/TECHNICAL_ARCHITECTURE](analysis/TECHNICAL_ARCHITECTURE.md)** - Technical architecture details
-- **[analysis/DASHBOARD_GUIDE](analysis/DASHBOARD_GUIDE.md)** - Grafana dashboards guide
+- **[guides/INSIGHT_ENGINE_GUIDE](guides/INSIGHT_ENGINE_GUIDE.md)** - Complete Insight Engine documentation
+- **[guides/MULTI_AGENT_SYSTEM](guides/MULTI_AGENT_SYSTEM.md)** - Multi-Agent System architecture and usage
+- **[guides/DASHBOARD_GUIDE](guides/DASHBOARD_GUIDE.md)** - Grafana dashboards guide
 
 ### Feature Guides
+- **[guides/CONTENT_INTELLIGENCE_GUIDE](guides/CONTENT_INTELLIGENCE_GUIDE.md)** - AI-powered content analysis, semantic search, and cannibalization detection ✨
 - **[guides/HUGO_CONTENT_OPTIMIZER](guides/HUGO_CONTENT_OPTIMIZER.md)** - Automated Hugo content optimization
+- **[guides/URL_DISCOVERY_GUIDE](guides/URL_DISCOVERY_GUIDE.md)** - Automatic URL discovery and monitoring
 - **[guides/URL_VARIATIONS_GUIDE](guides/URL_VARIATIONS_GUIDE.md)** - URL path tracking and variations
 - **[guides/URL_CONSOLIDATION_GUIDE](guides/URL_CONSOLIDATION_GUIDE.md)** - URL consolidation logic
 - **[guides/ACTIONS_COMMAND_CENTER](guides/ACTIONS_COMMAND_CENTER.md)** - Actions system documentation
 - **[guides/ACTIONS_DASHBOARD_QUICK_START](guides/ACTIONS_DASHBOARD_QUICK_START.md)** - Actions dashboard setup
 - **[guides/PROMETHEUS_DASHBOARDS_GUIDE](guides/PROMETHEUS_DASHBOARDS_GUIDE.md)** - Prometheus dashboards setup
-- **[guides/QUICK_START_PHASE1](guides/QUICK_START_PHASE1.md)** - Phase 1 quick start guide
+
+### Planning & Historical Documents
+- **[planning/DOCKER_OPTIMIZATION_GUIDE](planning/DOCKER_OPTIMIZATION_GUIDE.md)** - Docker optimization strategy
+- **[planning/PROMETHEUS_UI](planning/PROMETHEUS_UI.md)** - Prometheus UI enhancement plan
+- **[guides/QUICK_START_PHASE1](guides/QUICK_START_PHASE1.md)** - ⚠️ Deprecated: Use QUICKSTART.md instead
+- **[guides/INSIGHT_ENGINE_OVERVIEW](guides/INSIGHT_ENGINE_OVERVIEW.md)** - ⚠️ Deprecated: Use INSIGHT_ENGINE_GUIDE.md instead
 
 ### Testing
 - **[testing/TESTING](testing/TESTING.md)** - Comprehensive testing documentation
@@ -92,6 +98,7 @@ docs/
 ├── QUICKSTART.md                # Fast deployment guide
 ├── ARCHITECTURE.md              # System architecture
 ├── ARCHITECTURE_PATTERNS.md     # Design patterns
+├── DATA_MODEL.md                # Complete database schema (44+ tables)
 ├── DEPLOYMENT.md                # Deployment overview
 ├── TROUBLESHOOTING.md           # Issue resolution
 ├── QUICK_REFERENCE.md           # Quick command reference
@@ -105,10 +112,14 @@ docs/
 │
 ├── guides/                      # Development & Feature Guides
 │   ├── UNIFIED_VIEW_GUIDE.md    # Hybrid data layer guide
+│   ├── INSIGHT_ENGINE_GUIDE.md  # Insight Engine documentation
+│   ├── MULTI_AGENT_SYSTEM.md    # Multi-Agent System guide
+│   ├── DASHBOARD_GUIDE.md       # Grafana dashboards guide
 │   ├── DETECTOR_GUIDE.md        # Custom detector development
 │   ├── DEVELOPMENT.md           # Development setup
 │   ├── MCP_INTEGRATION.md       # MCP server integration
 │   ├── HUGO_CONTENT_OPTIMIZER.md # Hugo content optimization
+│   ├── URL_DISCOVERY_GUIDE.md   # Automatic URL discovery
 │   ├── URL_VARIATIONS_GUIDE.md  # URL variations tracking
 │   ├── URL_CONSOLIDATION_GUIDE.md # URL consolidation logic
 │   ├── ACTIONS_COMMAND_CENTER.md # Actions system
@@ -120,13 +131,6 @@ docs/
 │   ├── TESTING.md               # Comprehensive testing guide
 │   ├── INTEGRATION_README.md    # Integration testing
 │   └── TEST_SUMMARY_LIVE_OLLAMA.md # LLM testing
-│
-├── analysis/                    # System Analysis & Guides
-│   ├── SYSTEM_OVERVIEW.md       # System overview
-│   ├── TECHNICAL_ARCHITECTURE.md # Technical architecture
-│   ├── INSIGHT_ENGINE_GUIDE.md  # Insight Engine guide
-│   ├── MULTI_AGENT_SYSTEM.md    # Multi-Agent System guide
-│   └── DASHBOARD_GUIDE.md       # Dashboard guide
 │
 ├── deployment/                  # Deployment Documentation
 │   ├── DEPLOYMENT_CHECKLIST.md  # Deployment checklist
@@ -152,11 +156,12 @@ docs/
 
 ### For Developers
 1. Read [ARCHITECTURE](ARCHITECTURE.md) to understand the system
-2. Follow [guides/DEVELOPMENT](guides/DEVELOPMENT.md) for dev setup
-3. Use [guides/DETECTOR_GUIDE](guides/DETECTOR_GUIDE.md) to add detectors
-4. Read [analysis/INSIGHT_ENGINE_GUIDE](analysis/INSIGHT_ENGINE_GUIDE.md) for Insight Engine details
-5. Read [analysis/MULTI_AGENT_SYSTEM](analysis/MULTI_AGENT_SYSTEM.md) for agent architecture
-6. Review [testing/TESTING](testing/TESTING.md) for testing practices
+2. Review [DATA_MODEL](DATA_MODEL.md) for complete schema reference
+3. Follow [guides/DEVELOPMENT](guides/DEVELOPMENT.md) for dev setup
+4. Use [guides/DETECTOR_GUIDE](guides/DETECTOR_GUIDE.md) to add detectors
+5. Read [guides/INSIGHT_ENGINE_GUIDE](guides/INSIGHT_ENGINE_GUIDE.md) for Insight Engine details
+6. Read [guides/MULTI_AGENT_SYSTEM](guides/MULTI_AGENT_SYSTEM.md) for agent architecture
+7. Review [testing/TESTING](testing/TESTING.md) for testing practices
 
 ### For Operators
 1. Use [deployment/README.md](../deployment/README.md) for deployment
@@ -168,4 +173,4 @@ docs/
 
 ---
 
-**Last Updated**: 2025-11-27
+**Last Updated**: 2025-11-28

@@ -1,8 +1,22 @@
 # Insight Engine - Current Implementation
 
-**Document Type**: Technical Reference
-**Last Updated**: 2025-01-25
-**Status**: Production System Documentation
+> **⚠️ DEPRECATED - Use Comprehensive Guide Instead**
+>
+> This technical overview has been superseded by the comprehensive [Insight Engine Guide](INSIGHT_ENGINE_GUIDE.md) which includes:
+> - Complete feature documentation
+> - Setup instructions
+> - API reference
+> - Troubleshooting
+>
+> **Recommended**: Use [INSIGHT_ENGINE_GUIDE.md](INSIGHT_ENGINE_GUIDE.md) for all current deployments.
+>
+> This document remains for historical reference only.
+> Last updated: 2025-01-25
+
+---
+
+**Document Type**: Technical Reference (Deprecated)
+**Status**: Historical Reference Only
 
 ---
 

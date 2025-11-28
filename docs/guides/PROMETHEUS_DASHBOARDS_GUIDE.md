@@ -378,7 +378,7 @@ docker ps | grep exporter
 # Check exporter metrics endpoint
 curl http://localhost:9187/metrics  # postgres
 curl http://localhost:9121/metrics  # redis
-curl http://localhost:8080/metrics  # cadvisor
+curl http://localhost:8003/metrics  # docker_stats_exporter
 
 # Restart Prometheus
 docker restart gsc_prometheus
@@ -628,7 +628,7 @@ Variables allow filtering dashboards by service, container, database, etc.
 - [PromQL Tutorial](https://prometheus.io/docs/prometheus/latest/querying/basics/)
 
 ### Exporter Documentation
-- [cAdvisor](https://github.com/google/cadvisor)
+- [Docker Stats Exporter](../../services/docker_exporter/README.md) - Custom Windows-compatible container metrics exporter
 - [PostgreSQL Exporter](https://github.com/prometheus-community/postgres_exporter)
 - [Redis Exporter](https://github.com/oliver006/redis_exporter)
 
